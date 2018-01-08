@@ -9,8 +9,8 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="torrent in anime" :key="torrent.guid">
-          <td @click="download(torrent)">{{torrent.title}}</td>
+        <tr v-for="kv in anime.filter(e => e.key != 'undefined')" :key="kv.key">
+          <td>{{kv.key}}</td>
         </tr>
       </tbody>
     </table>
@@ -18,6 +18,14 @@
 </template>
 
 <script>
+
+import * as d3 from 'd3'
+
+const nester = d3.nest()
+        .key(d => d.meta ? d.meta.name : undefined)
+        .key(d => d.meta ? d.meta.episode : undefined)
+        .sortKeys(d3.descending)
+
 export default {
   name: 'Main',
   data () {
@@ -27,7 +35,8 @@ export default {
   },
   mounted () {
     this.$http.get('/api/anime').then(res => {
-      this.anime = res.body
+      this.anime = nester.entries(res.body)
+      console.log(this.anime)
     })
   },
   methods: {

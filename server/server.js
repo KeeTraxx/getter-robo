@@ -16,8 +16,8 @@ MongoClient.connect(url).then(client => {
   torrents.createIndex({ 'meta.episode': 1 })
   torrents.createIndex({ 'meta.group': 1 })
 
-  autodownload.createIndex({ 'name': 1 });
-  autodownload.createIndex({ 'group': 1 });
+  autodownload.createIndex({ 'name': 1 })
+  autodownload.createIndex({ 'group': 1 })
 
   const app = express()
 
@@ -61,7 +61,7 @@ MongoClient.connect(url).then(client => {
       entries.forEach(e => {
         torrents.update({
           guid: e.guid
-        }, e, {
+        }, { $set: e }, {
             upsert: true
           }).then(entry => {
             if (entry.meta) {
@@ -110,7 +110,7 @@ MongoClient.connect(url).then(client => {
       'downloaded': { $exists: false }
     }).toArray().then(res => {
       console.log('Would download', res)
-      res.forEach(entry => download(entry.link))
+      res.forEach(entry => download(entry.link).then(() => console.log('downloaded')).catch(err => console.log(err)))
     })
   }
 
@@ -167,15 +167,11 @@ MongoClient.connect(url).then(client => {
       gzip: true
     }
 
-    /*return request(login)
+    return request(login)
       .then(() => request(download))
       .then(() => torrents.updateOne({ link: t }, {
         $set: { downloaded: true }
-      })
-      )*/
-    return torrents.updateOne({ link: t }, {
-      $set: { downloaded: true }
-    })
+      }))
   }
 
   app.post('/api/download', (req, res) => {

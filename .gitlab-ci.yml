@@ -1,0 +1,52 @@
+services:
+  - docker:dind
+
+variables:
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+
+stages:
+  - server
+  - client
+  - build
+
+cache:
+  untracked: true
+
+server:
+  stage: server
+  image: node:9-alpine
+  before_script:
+    - node --version
+    - yarn --version
+    - echo $CI_BUILD_REF
+    - echo $CI_PROJECT_DIR
+  script:
+    - cd server
+    - yarn install
+
+client:
+  stage: client
+  image: node:9-alpine
+  cache:
+    paths:
+      - node_modules
+  before_script:
+    - node --version
+    - yarn --version
+    - echo $CI_BUILD_REF
+    - echo $CI_PROJECT_DIR
+  script:
+    - cd client
+    - yarn install
+    - yarn build
+    - mkdir -p $CI_PROJECT_DIR/server/public
+    - cp -r dist/* $CI_PROJECT_DIR/builds/public
+
+build:
+  image: docker:latest
+  before_script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+  stage: build
+  script:
+    - docker build -t $IMAGE_TAG .
+    - docker push $IMAGE_TAG

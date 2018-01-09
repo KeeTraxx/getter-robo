@@ -51,7 +51,7 @@ export default {
       return moment(date).fromNow()
     },
     isAutodownloading (name, group) {
-      return this.autodownload.find(d => d.name == name && d.group == group)
+      return this.autodownload.find(d => d.name === name && d.group === group)
     },
     refresh () {
       this.$http.get('/api/anime').then(res => {

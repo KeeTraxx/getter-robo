@@ -9,12 +9,16 @@ const regex = /^\[(.+?)\]\s+([^\[\]]+?)\s*-\s+(\d+)\s+.*(720|1080|480).*\.(mp4|m
 MongoClient.connect(url).then(client => {
   let db = client.db('getter-robo')
   let torrents = db.collection('torrents')
-  torrents.createIndexes([
-    { "meta.name": 1 },
-    { "meta.group": 1 },
-    { "meta.episode": 1 },
-    { "pubDate": 1 }
-  ])
+  let autodownload = db.collection('autodownload')
+
+  console.log('Creating indexes...')
+  torrents.createIndex({ 'meta.name': 1 })
+  torrents.createIndex({ 'meta.episode': 1 })
+  torrents.createIndex({ 'meta.group': 1 })
+
+  autodownload.createIndex({ 'name': 1 });
+  autodownload.createIndex({ 'group': 1 });
+
   const app = express()
 
   app.use(bodyParser.json())
@@ -23,6 +27,11 @@ MongoClient.connect(url).then(client => {
   app.get('/api/anime', (req, res) => {
     torrents.find().sort({ pubDate: -1 }).limit(1000).toArray().then(t => res.send(t))
   })
+
+  app.get('/api/autodownload', (req, res) => {
+    autodownload.find().toArray().then(a => res.send(a))
+  })
+
   function fetchRSS () {
     new Promise((resolve, reject) => {
       RSSParser.parseURL('https://nyaa.si/?page=rss&q=720&c=1_2&m=1&f=0', (err, res) => {
@@ -43,7 +52,7 @@ MongoClient.connect(url).then(client => {
             name: matches[2],
             episode: matches[3],
             resolution: parseInt(matches[4]),
-            extention: matches[5]  
+            extention: matches[5]
           }
         }
       })
@@ -54,6 +63,17 @@ MongoClient.connect(url).then(client => {
           guid: e.guid
         }, e, {
             upsert: true
+          }).then(entry => {
+            if (entry.meta) {
+              autodownload.find({
+                name: entry.meta.name,
+                group: entry.meta.group
+              }).then(res => {
+                if (res) {
+                  download(entry.link)
+                }
+              })
+            }
           })
       })
     })
@@ -63,7 +83,50 @@ MongoClient.connect(url).then(client => {
 
   setInterval(() => fetchRSS(), 60000 * 10)
 
-  app.all('/api/download', (req, res) => {
+  function toggle (name, group) {
+    console.log('toggling', name, group)
+    return autodownload.findOne({
+      name,
+      group
+    }).then(result => {
+      if (result) {
+        return autodownload.deleteOne({
+          name, group
+        })
+      } else {
+        downloadAll(name, group)
+        return autodownload.insertOne({
+          name, group
+        })
+      }
+    })
+  }
+
+  function downloadAll (name, group) {
+    console.log('downloading all', name, group)
+    return torrents.find({
+      'meta.name': name,
+      'meta.group': group,
+      'downloaded': { $exists: false }
+    }).toArray().then(res => {
+      console.log('Would download', res)
+      res.forEach(entry => download(entry.link))
+    })
+  }
+
+  app.post('/api/toggle', (req, res) => {
+    toggle(req.body.name, req.body.group)
+      .then(() => res.send({ status: 'ok' }))
+      .catch(err => {
+        console.log(err)
+        res.send(500, err)
+      })
+  })
+
+  function download (t) {
+
+    console.log('downloading', t)
+
     let cookieJar = request.jar()
     let login = {
       method: 'POST',
@@ -86,7 +149,7 @@ MongoClient.connect(url).then(client => {
         id: 2,
         method: 'web.add_torrents',
         params: [[{
-          path: req.body.link,
+          path: t,
           options: {
             compact_allocation: false,
             download_location: '/downloads',
@@ -104,17 +167,21 @@ MongoClient.connect(url).then(client => {
       gzip: true
     }
 
-    request(login)
+    /*return request(login)
       .then(() => request(download))
-      .then(resp => {
-        console.log(resp)
-        res.send('ok')
+      .then(() => torrents.updateOne({ link: t }, {
+        $set: { downloaded: true }
       })
-      .catch(err => {
-        console.log(err)
-        res.send(500, err)
-      })
+      )*/
+    return torrents.updateOne({ link: t }, {
+      $set: { downloaded: true }
+    })
+  }
 
+  app.post('/api/download', (req, res) => {
+    download(req.body.link)
+      .then(resp => res.send('ok'))
+      .catch(err => res.err(err))
   })
 
   const server = app.listen(process.env.PORT || 3000, () => console.log('Getter app listening on port ' + server.address().port))

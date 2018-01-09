@@ -1,20 +1,15 @@
 <template>
   <div class="container">
-    <h1>Main</h1>
-    <table class="table table-striped table-hover">
-      <thead>
-        <tr>
-          <th>Title</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="kv in anime.filter(e => e.key != 'undefined')" :key="kv.key">
-          <td>{{kv.key}}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+      <div class="entry row" v-for="kv in anime.filter(e => e.key != 'undefined')" :key="kv.key">
+        <div class="col-md-6 col-sm-12">{{kv.key}}</div>
+        <div class="col-md-6 col-sm-12">
+          <div class="btn-group" v-for="group in kv.values" :key="group.key">
+            <button class="btn btn-sm btn-secondary" @click="toggle(kv.key, group.key)">{{group.key}}</button>
+            <button class="btn btn-sm btn-secondary" @click="download(group.values[group.values.length-1])">{{group.values[group.values.length-1].meta.episode}}</button>
+          </div>
+        </div>
+      </div>
+    </div>
 </template>
 
 <script>
@@ -22,9 +17,9 @@
 import * as d3 from 'd3'
 
 const nester = d3.nest()
-        .key(d => d.meta ? d.meta.name : undefined)
-        .key(d => d.meta ? d.meta.episode : undefined)
-        .sortKeys(d3.descending)
+  .key(d => d.meta ? d.meta.name : undefined)
+  .key(d => d.meta ? d.meta.group : undefined)
+  .sortKeys(d3.descending)
 
 export default {
   name: 'Main',
@@ -44,7 +39,22 @@ export default {
       this.$http.post('/api/download', torrent).then(res => {
         console.log(res)
       })
+    },
+    toggle (name, group) {
+      this.$http.post('/api/toggle', { name, group }).then(res => {
+        console.log(res)
+      })
     }
   }
 }
 </script>
+
+<style scoped>
+.entry {
+  margin: 1em 0;
+}
+
+.btn-group {
+  margin: 0 0.5em;
+}
+</style>

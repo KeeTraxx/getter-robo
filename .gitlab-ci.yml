@@ -17,12 +17,12 @@ server:
   image: node:9-alpine
   before_script:
     - node --version
-    - yarn --version
+    - npm --version
     - echo $CI_BUILD_REF
     - echo $CI_PROJECT_DIR
   script:
     - cd server
-    - yarn install
+    - npm install
 
 client:
   stage: client
@@ -32,13 +32,13 @@ client:
       - node_modules
   before_script:
     - node --version
-    - yarn --version
+    - npm --version
     - echo $CI_BUILD_REF
     - echo $CI_PROJECT_DIR
   script:
     - cd client
-    - yarn install
-    - yarn build
+    - npm install
+    - npm build
     - mkdir -p $CI_PROJECT_DIR/server/public
     - cp -r dist/* $CI_PROJECT_DIR/builds/public
 

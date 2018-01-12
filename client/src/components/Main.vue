@@ -1,11 +1,14 @@
 <template>
   <div class="container">
-    <div class="entry row" v-for="kv in anime.filter(e => e.key != 'undefined')" :key="kv.key">
-      <div class="col-md-6 col-sm-12">{{kv.key}}</div>
+    <div class="entry row" v-for="a in anime" :key="a.name">
+      <div class="anime col-md-6 col-sm-12">
+        <div class="img" :style="{backgroundImage: `url('${a.link}')`}"></div>
+        <div>{{a.name}}</div>
+      </div>
       <div class="col-md-6 col-sm-12">
-        <div class="btn-group" v-for="group in kv.values" :key="group.key">
-          <button :class="{'btn-primary': isAutodownloading(kv.key, group.key), 'btn-secondary': !isAutodownloading(kv.key, group.key)}" class="btn btn-sm" @click="toggle(kv.key, group.key)">{{group.key}}</button>
-          <button :class="{'btn-outline-primary': isAutodownloading(kv.key, group.key), 'btn-outline-secondary': !isAutodownloading(kv.key, group.key)}" class="btn btn-sm " @click="download(last(group.values))">{{last(group.values).meta.episode}} ({{ago(last(group.values).pubDate)}})</button>
+        <div class="btn-group" v-for="(torrents, group) in a.torrents" :key="group">
+          <button :class="{'btn-primary': isAutodownloading(a.name, group), 'btn-secondary': !isAutodownloading(a.name, group)}" class="btn btn-sm" @click="toggle(a.name, group)">{{group}}</button>
+          <button :class="{'btn-outline-primary': isAutodownloading(a.name, group), 'btn-outline-secondary': !isAutodownloading(a.name, group)}" class="btn btn-sm " @click="download(last(torrents))">{{last(torrents).meta.episode}} ({{ago(last(torrents).pubDate)}})</button>
         </div>
       </div>
     </div>
@@ -13,14 +16,18 @@
 </template>
 
 <script>
-import * as d3 from 'd3'
+import _ from 'lodash'
 import moment from 'moment'
 
-const nester = d3
-  .nest()
-  .key(d => (d.meta ? d.meta.name : undefined))
-  .key(d => (d.meta ? d.meta.group : undefined))
-  .sortKeys(d3.ascending)
+var nest = function (seq, keys) {
+  if (!keys.length)
+    return seq;
+  var first = keys[0];
+  var rest = keys.slice(1);
+  return _.mapValues(_.groupBy(seq, first), function (value) {
+    return nest(value, rest)
+  });
+};
 
 export default {
   name: 'Main',
@@ -53,9 +60,17 @@ export default {
     isAutodownloading (name, group) {
       return this.autodownload.find(d => d.name === name && d.group === group)
     },
+    urlMap (url) {
+      return 
+    },
     refresh () {
       this.$http.get('/api/anime').then(res => {
-        this.anime = nester.entries(res.body)
+        res.body.forEach(anime => {
+          //console.log(_.groupBy)
+          anime.torrents = nest(anime.torrents, [t => t.meta.group])
+        })
+        this.anime = res.body
+        console.log(this.anime)
       })
 
       this.$http.get('/api/autodownload').then(res => {
@@ -67,11 +82,26 @@ export default {
 </script>
 
 <style scoped>
+.anime {
+  display: flex;
+}
+
+.anime > div {
+  align-self: center;
+}
+
 .entry {
   margin: 1em 0;
 }
 
 .btn-group {
   margin: 0.2em 0.5em;
+}
+
+.img {
+  height: 64px;
+  width: 64px;
+  background-repeat: no-repeat;
+  background-size: cover;
 }
 </style>

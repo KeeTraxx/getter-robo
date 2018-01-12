@@ -3,13 +3,54 @@ const RSSParser = require('rss-parser')
 const bodyParser = require('body-parser')
 const request = require('request-promise')
 const MongoClient = require('mongodb').MongoClient
+const Promise = require('bluebird')
 const url = 'mongodb://mongodb/getter-robo'
 const regex = /^\[(.+?)\]\s+([^\[\]]+?)\s*-\s+(\d+)\s+.*(720|1080|480).*\.(mp4|mkv)$/
+const google = require('googleapis')
+const customsearch = google.customsearch('v1')
+
+
+// You can get a custom search engine id at
+// https://www.google.com/cse/create/new
+const CX = '017978448925266833740:vackl7zvcmy';
+const API_KEY = 'AIzaSyDeuU7C1nbHXmHmYT5C5zbTjXN-aZEWYhk';
+
+
+let imageSearch = q => {
+  return new Promise((resolve, reject) => {
+    customsearch.cse.list({ cx: CX, q: q, auth: API_KEY, searchType: 'image', imgSize: 'large' }, (err, res) => err ? reject(err): resolve(res.items))
+  })
+}
+
+let parseRSSUrl = url => {
+  return new Promise((resolve, reject) => {
+    RSSParser.parseURL(url, (err, res) => err ? reject(err) : resolve(res.feed.entries))
+  })
+}
+
+let cookieJar = request.jar()
+let reqId = 0;
+
+let deluge = (method, params) => {
+  return request({
+    method: 'POST',
+    uri: 'http://192.168.0.199:8112/json',
+    json: true,
+    body: {
+      id: ++reqId,
+      method: method,
+      params: params
+    },
+    jar: cookieJar,
+    gzip: true
+  })
+}
 
 MongoClient.connect(url).then(client => {
   let db = client.db('getter-robo')
   let torrents = db.collection('torrents')
   let autodownload = db.collection('autodownload')
+  let anime = db.collection('anime')
 
   console.log('Creating indexes...')
   torrents.createIndex({ 'meta.name': 1 })
@@ -19,13 +60,30 @@ MongoClient.connect(url).then(client => {
   autodownload.createIndex({ 'name': 1 })
   autodownload.createIndex({ 'group': 1 })
 
+  anime.createIndex({ 'name': 1 })
+
   const app = express()
 
   app.use(bodyParser.json())
   app.use(express.static('public'))
 
-  app.get('/api/anime', (req, res) => {
+  app.get('/api/torrents', (req, res) => {
     torrents.find().sort({ pubDate: -1 }).limit(1000).toArray().then(t => res.send(t))
+  })
+
+  app.get('/api/anime', (req, res) => {
+    anime.aggregate([
+      {
+        $lookup: {
+          from: 'torrents',
+          localField: 'name',
+          foreignField: 'meta.name',
+          as: 'torrents'
+        }
+      }
+    ]).toArray()
+    .then(result => res.send(result))
+    .catch(err => res.error(err))
   })
 
   app.get('/api/autodownload', (req, res) => {
@@ -33,16 +91,8 @@ MongoClient.connect(url).then(client => {
   })
 
   function fetchRSS () {
-    new Promise((resolve, reject) => {
-      RSSParser.parseURL('https://nyaa.si/?page=rss&q=720&c=1_2&m=1&f=0', (err, res) => {
-        if (err) {
-          reject(err)
-        } else {
-          resolve(res.feed.entries)
-        }
-      })
-    }).then(entries => {
-      entries.forEach(e => {
+    return parseRSSUrl('https://nyaa.si/?page=rss&q=720&c=1_2&m=1&f=0')
+      .map(e => {
         let matches = regex.exec(e.title)
         e.pubDate = new Date(e.pubDate)
         e.isoDate = new Date(e.isoDate)
@@ -55,28 +105,29 @@ MongoClient.connect(url).then(client => {
             extention: matches[5]
           }
         }
+        return e
       })
-      return entries
-    }).then(entries => {
-      entries.forEach(e => {
-        torrents.update({
-          guid: e.guid
-        }, { $set: e }, {
-            upsert: true
-          }).then(entry => {
-            if (entry.meta) {
-              autodownload.find({
-                name: entry.meta.name,
-                group: entry.meta.group
-              }).then(res => {
-                if (res) {
-                  download(entry.link)
-                }
-              })
-            }
+      .map(e => torrents.findOneAndUpdate({ guid: e.guid }, { $set: e }, { upsert: true }))
+      .map(e => fetchImage(e.value))
+      .then(entries => console.log('Parsed rss entries:', entries.length))
+      .catch(err => console.error('Error fetching RSS', err))
+  }
+
+
+  function fetchImage (torrent) {
+    if (torrent && torrent.meta) {
+      anime.findOne({ name: torrent.meta.name }).then(res => {
+        if (!res || !res.link) {
+          console.log('Getting image for', torrent.meta.name)
+          imageSearch(torrent.meta.name).then(imgs => {
+            anime.findOneAndUpdate({name: torrent.meta.name}, {
+              $set: imgs[0]
+            }, {upsert: true})
           })
+        }
       })
-    })
+    }
+    return torrent
   }
 
   fetchRSS()
@@ -84,34 +135,24 @@ MongoClient.connect(url).then(client => {
   setInterval(() => fetchRSS(), 60000 * 10)
 
   function toggle (name, group) {
-    console.log('toggling', name, group)
-    return autodownload.findOne({
-      name,
-      group
-    }).then(result => {
+    return autodownload.findOne({ name, group }).then(result => {
       if (result) {
-        return autodownload.deleteOne({
-          name, group
-        })
+        console.log('Toggling off', name, group)
+        return autodownload.deleteOne({ name, group })
       } else {
-        downloadAll(name, group)
-        return autodownload.insertOne({
-          name, group
-        })
+        console.log('Toggling on', name, group)
+        return autodownload.insertOne({ name, group }).then(() => downloadAll(name, group))
       }
     })
   }
 
   function downloadAll (name, group) {
     console.log('downloading all', name, group)
-    return torrents.find({
+    return Promise.resolve(torrents.find({
       'meta.name': name,
       'meta.group': group,
       'downloaded': { $exists: false }
-    }).toArray().then(res => {
-      console.log('Would download', res)
-      res.forEach(entry => download(entry.link).then(() => console.log('downloaded')).catch(err => console.log(err)))
-    })
+    }).toArray()).map(torrent => download(torrent.link))
   }
 
   app.post('/api/toggle', (req, res) => {
@@ -124,54 +165,28 @@ MongoClient.connect(url).then(client => {
   })
 
   function download (t) {
-
     console.log('downloading', t)
-
-    let cookieJar = request.jar()
-    let login = {
-      method: 'POST',
-      uri: 'http://192.168.0.199:8112/json',
-      json: true,
-      body: {
-        id: 1,
-        method: 'auth.login',
-        params: ['']
-      },
-      jar: cookieJar,
-      gzip: true
-    }
-
-    let download = {
-      method: 'POST',
-      uri: 'http://192.168.0.199:8112/json',
-      json: true,
-      body: {
-        id: 2,
-        method: 'web.add_torrents',
-        params: [[{
-          path: t,
-          options: {
-            compact_allocation: false,
-            download_location: '/downloads',
-            move_completed: false,
-            move_completed_path: '/downloads',
-            max_connections: -1,
-            max_download_speed: -1,
-            max_upload_slots: -1,
-            max_upload_speed: -1,
-            prioritize_first_last_pieces: false
-          }
-        }]]
-      },
-      jar: cookieJar,
-      gzip: true
-    }
-
-    return request(login)
-      .then(() => request(download))
+    return deluge('auth.login', [''])
+      .then(() => deluge('web.add_torrents', [[{
+        path: t,
+        options: {
+          compact_allocation: false,
+          download_location: '/downloads',
+          move_completed: false,
+          move_completed_path: '/downloads',
+          max_connections: -1,
+          max_download_speed: -1,
+          max_upload_slots: -1,
+          max_upload_speed: -1,
+          prioritize_first_last_pieces: false
+        }
+      }]]))
       .then(() => torrents.updateOne({ link: t }, {
         $set: { downloaded: true }
       }))
+      .then(() => {
+        console.log('Downloaded', t)
+      })
   }
 
   app.post('/api/download', (req, res) => {
@@ -182,5 +197,3 @@ MongoClient.connect(url).then(client => {
 
   const server = app.listen(process.env.PORT || 3000, () => console.log('Getter app listening on port ' + server.address().port))
 })
-
-

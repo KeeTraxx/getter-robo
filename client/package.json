@@ -14,10 +14,12 @@
     "build": "node build/build.js"
   },
   "dependencies": {
+    "bluebird": "^3.5.1",
     "bootstrap": "4.0.0-beta.2",
     "bootstrap-vue": "^1.4.0",
     "d3": "^4.12.2",
     "jquery": "^3.2.1",
+    "lodash": "^4.17.4",
     "moment": "^2.20.1",
     "popper.js": "^1.12.9",
     "rss-parser": "^2.11.0",

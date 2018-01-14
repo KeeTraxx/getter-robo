@@ -12,14 +12,18 @@ const customsearch = google.customsearch('v1')
 
 // You can get a custom search engine id at
 // https://www.google.com/cse/create/new
-const CX = '017978448925266833740:vackl7zvcmy';
-const API_KEY = 'AIzaSyDeuU7C1nbHXmHmYT5C5zbTjXN-aZEWYhk';
+const CX = process.env.GOOGLE_CSE_CX;
+const API_KEY = process.env.GOOGLE_API_KEY;
 
 
 let imageSearch = q => {
-  return new Promise((resolve, reject) => {
-    customsearch.cse.list({ cx: CX, q: q, auth: API_KEY, searchType: 'image', imgSize: 'large' }, (err, res) => err ? reject(err): resolve(res.items))
-  })
+  if (CX && API_KEY) {
+    return new Promise((resolve, reject) => {
+      customsearch.cse.list({ cx: CX, q: q, auth: API_KEY, searchType: 'image', imgSize: 'large' }, (err, res) => err ? reject(err) : resolve(res.items))
+    })
+  } else {
+    return [{}]
+  }
 }
 
 let parseRSSUrl = url => {
@@ -82,8 +86,8 @@ MongoClient.connect(url).then(client => {
         }
       }
     ]).toArray()
-    .then(result => res.send(result))
-    .catch(err => res.error(err))
+      .then(result => res.send(result))
+      .catch(err => res.error(err))
   })
 
   app.get('/api/autodownload', (req, res) => {
@@ -120,9 +124,9 @@ MongoClient.connect(url).then(client => {
         if (!res || !res.link) {
           console.log('Getting image for', torrent.meta.name)
           imageSearch(torrent.meta.name).then(imgs => {
-            anime.findOneAndUpdate({name: torrent.meta.name}, {
+            anime.findOneAndUpdate({ name: torrent.meta.name }, {
               $set: imgs[0]
-            }, {upsert: true})
+            }, { upsert: true })
           })
         }
       })

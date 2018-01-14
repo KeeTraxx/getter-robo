@@ -103,5 +103,11 @@ export default {
   width: 64px;
   background-repeat: no-repeat;
   background-size: cover;
+  background-position: center center;
+  margin: 0.2em;
+}
+
+.entry {
+  border: 1px solid black;
 }
 </style>

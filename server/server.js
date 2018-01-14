@@ -143,6 +143,7 @@ MongoClient.connect(url).then(client => {
         return e
       })
       .map(e => torrents.findOneAndUpdate({ guid: e.guid }, { $set: e }, { upsert: true }))
+      .map(e => saveAnime(e))
       .map(e => fetchImage(e.value))
       .map(e => checkDownload(e))
       .then(entries => console.log('Parsed rss entries:', entries.length))
@@ -160,6 +161,15 @@ MongoClient.connect(url).then(client => {
     }
   }
 
+  function saveAnime (torrent) {
+    if (torrent.meta) {
+      return anime.findOneAndUpdate({ name: torrent.meta.name }, { $set: { name: torrent.meta.name } }, { upsert: true })
+        .then(() => torrent)
+    } else {
+      return torrent
+    }
+  }
+
   function fetchImage (torrent) {
     if (torrent && torrent.meta) {
       return anime.findOne({ name: torrent.meta.name }).then(res => {
@@ -170,11 +180,6 @@ MongoClient.connect(url).then(client => {
               return anime.findOneAndUpdate({ name: torrent.meta.name }, {
                 name: torrent.meta.name,
                 $set: imgs[0]
-              }, { upsert: true })
-            } else {
-              console.log('saving', torrent.meta.name)
-              return anime.findOneAndUpdate({ name: torrent.meta.name }, {
-                name: torrent.meta.name
               }, { upsert: true })
             }
           }).thenReturn(torrent)

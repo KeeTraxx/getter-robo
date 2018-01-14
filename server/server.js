@@ -20,7 +20,6 @@ const token = process.env.SLACK_TOKEN;
 
 const web = new WebClient(token);
 
-
 let imageSearch = q => {
   if (CX && API_KEY) {
     return new Promise((resolve, reject) => {
@@ -151,7 +150,7 @@ MongoClient.connect(url).then(client => {
   }
 
   function checkDownload (torrent) {
-    if (!torrent.downloaded && torrent.meta) {
+    if (torrent && !torrent.downloaded && torrent.meta) {
       return autodownload.findOne({
         name: torrent.meta.name,
         group: torrent.meta.group
@@ -162,6 +161,7 @@ MongoClient.connect(url).then(client => {
   }
 
   function saveAnime (torrent) {
+    console.log('saveanime', torrent)
     if (torrent.meta) {
       return anime.findOneAndUpdate({ name: torrent.meta.name }, { $set: { name: torrent.meta.name } }, { upsert: true })
         .then(() => torrent)
@@ -179,12 +179,12 @@ MongoClient.connect(url).then(client => {
             if (imgs) {
               console.log('Image data:', imgs[0])
               return anime.findOneAndUpdate({ name: torrent.meta.name }, {
-                name: torrent.meta.name,
                 $set: imgs[0]
-              }, { upsert: true })
+              }, { upsert: true }).then(() => torrent)
             }
           }).catch(err => {
-            console.log('Error saving image data', imgs, err)
+            console.log('Error saving image data', err)
+            return torrent
           }).thenReturn(torrent)
         } else {
           return torrent

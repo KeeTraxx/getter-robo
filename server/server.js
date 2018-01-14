@@ -251,8 +251,8 @@ MongoClient.connect(url).then(client => {
       }))
       .then(() => {
         console.log('Downloaded', t)
-      }).then(() => t.meta ? anime.findOne({ name: t.meta.name }) : undefined).then(anime => notify('C4L2P062F', t.title + " downloaded!", {
-        attachments: anime ? [{ image_url: anime.link }] : []
+      }).then(() => t.meta ? anime.findOne({ name: t.meta.name }) : undefined).then(a => notify('C4L2P062F', t.title + " downloaded!", {
+        attachments: a ? [{ image_url: a.link }] : []
       })).then(() => t).catch(err => t)
   }
 

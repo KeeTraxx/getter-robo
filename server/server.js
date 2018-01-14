@@ -16,8 +16,7 @@ const CX = process.env.GOOGLE_CSE_CX;
 const API_KEY = process.env.GOOGLE_API_KEY;
 
 // An access token (from your Slack app or custom integration - xoxp, xoxb, or xoxa)
-//const token = process.env.SLACK_TOKEN;
-const token = 'xoxp-156851913223-155481936033-298096950929-cbfb6bdd71cbfa21c6c74a7b9f4167f5'
+const token = process.env.SLACK_TOKEN;
 
 const web = new WebClient(token);
 

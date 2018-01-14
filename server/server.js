@@ -160,8 +160,6 @@ MongoClient.connect(url).then(client => {
     }
   }
 
-
-
   function fetchImage (torrent) {
     if (torrent && torrent.meta) {
       return anime.findOne({ name: torrent.meta.name }).then(res => {
@@ -247,7 +245,7 @@ MongoClient.connect(url).then(client => {
         console.log('Downloaded', t)
       }).then(() => t.meta ? anime.findOne({ name: t.meta.name }) : undefined).then(anime => notify('C4L2P062F', t.title + " downloaded!", {
         attachments: anime ? [{ image_url: anime.link }] : []
-      }))
+      })).then(() => t).catch(err => t)
   }
 
   app.post('/api/download', (req, res) => {

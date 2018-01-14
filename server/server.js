@@ -177,11 +177,14 @@ MongoClient.connect(url).then(client => {
           console.log('Getting image for', torrent.meta.name, res)
           return imageSearch(torrent.meta.name).then(imgs => {
             if (imgs) {
+              console.log('Image data:', imgs[0])
               return anime.findOneAndUpdate({ name: torrent.meta.name }, {
                 name: torrent.meta.name,
                 $set: imgs[0]
               }, { upsert: true })
             }
+          }).catch(err => {
+            console.log('Error saving image data', imgs, err)
           }).thenReturn(torrent)
         } else {
           return torrent

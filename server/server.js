@@ -22,7 +22,8 @@ let imageSearch = q => {
       customsearch.cse.list({ cx: CX, q: q, auth: API_KEY, searchType: 'image', imgSize: 'large' }, (err, res) => err ? reject(err) : resolve(res.items))
     })
   } else {
-    return [{}]
+    console.log('No CX / API_KEY')
+    return Promise.resolve()
   }
 }
 
@@ -90,6 +91,16 @@ MongoClient.connect(url).then(client => {
       .catch(err => res.error(err))
   })
 
+  app.get('/api/torrents/uncatalogued', (req, res) => {
+    torrents.find({
+      $exists: {
+        meta: false
+      }
+    }).toArray()
+      .then(results => res.send(results))
+      .catch(err => res.error(err))
+  })
+
   app.get('/api/autodownload', (req, res) => {
     autodownload.find().toArray().then(a => res.send(a))
   })
@@ -122,16 +133,25 @@ MongoClient.connect(url).then(client => {
     if (torrent && torrent.meta) {
       anime.findOne({ name: torrent.meta.name }).then(res => {
         if (!res || !res.link) {
-          console.log('Getting image for', torrent.meta.name)
-          imageSearch(torrent.meta.name).then(imgs => {
-            anime.findOneAndUpdate({ name: torrent.meta.name }, {
-              $set: imgs[0]
-            }, { upsert: true })
-          })
+          console.log('Getting image for', torrent.meta.name, res)
+          return imageSearch(torrent.meta.name).then(imgs => {
+            if (imgs) {
+              return anime.findOneAndUpdate({ name: torrent.meta.name }, {
+                name: torrent.meta.name,
+                $set: imgs[0]
+              }, { upsert: true })
+            } else {
+              console.log('saving', torrent.meta.name)
+              return anime.findOneAndUpdate({ name: torrent.meta.name }, {
+                name: torrent.meta.name
+              }, { upsert: true })
+            }
+          }).thenReturn(torrent)
         }
       })
+    } else {
+      return torrent
     }
-    return torrent
   }
 
   fetchRSS()

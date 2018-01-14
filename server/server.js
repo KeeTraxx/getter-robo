@@ -251,10 +251,21 @@ MongoClient.connect(url).then(client => {
       }))
       .then(() => {
         console.log('Downloaded', t)
-      }).then(() => t.meta ? anime.findOne({ name: t.meta.name }) : undefined).then(a => notify('C4L2P062F', t.title + " downloaded!", {
-        attachments: a ? [{ image_url: a.link }] : []
-      })).then(() => t).catch(err => t)
+        return t
+      }).then(() => {
+        console.log('finding anime in', t)
+        return t.meta ? anime.findOne({ name: t.meta.name }) : undefined
+      }).then(a => {
+        console.log('notify anime', a)
+        return notify('C4L2P062F', t.title + " downloaded!", {
+          attachments: a ? [{ fallback: 'img', image_url: a.link }] : []
+        })
+      }).then(() => t).catch(err => {
+        console.log(err)
+        return t
+      })
   }
+
 
   app.post('/api/download', (req, res) => {
     download(req.body)

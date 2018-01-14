@@ -13,7 +13,7 @@
       </div>
     </div>
     <!-- Modal Component -->
-    <b-modal id="torrents" title="Torrents">
+    <b-modal id="torrents" :title="selectedTorrents ? selectedTorrents[0].meta.group + ' ' +selectedTorrents[0].meta.name : ''">
       <div class="btn-group" v-for="torrent in selectedTorrents" :key="torrent.guid">
         <div @click="download(torrent)" :class="{'btn-primary': torrent.downloaded, 'btn-secondary': !torrent.downloaded}" class="btn">{{torrent.title}}</div>
       </div>

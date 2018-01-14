@@ -8,12 +8,18 @@ const url = 'mongodb://mongodb/getter-robo'
 const regex = /^\[(.+?)\]\s+([^\[\]]+?)\s*-\s+(\d+)\s+.*(720|1080|480).*\.(mp4|mkv)$/
 const google = require('googleapis')
 const customsearch = google.customsearch('v1')
-
+const { WebClient } = require('@slack/client')
 
 // You can get a custom search engine id at
 // https://www.google.com/cse/create/new
 const CX = process.env.GOOGLE_CSE_CX;
 const API_KEY = process.env.GOOGLE_API_KEY;
+
+// An access token (from your Slack app or custom integration - xoxp, xoxb, or xoxa)
+//const token = process.env.SLACK_TOKEN;
+const token = 'xoxp-156851913223-155481936033-298096950929-cbfb6bdd71cbfa21c6c74a7b9f4167f5'
+
+const web = new WebClient(token);
 
 
 let imageSearch = q => {
@@ -25,6 +31,21 @@ let imageSearch = q => {
     console.log('No CX / API_KEY')
     return Promise.resolve()
   }
+}
+
+let notify = (channelId, msg, opts) => {
+  if (channelId, msg, opts) {
+
+    return web.chat.postMessage(channelId, msg, opts)
+      .then((res) => {
+        // `res` contains information about the posted message
+        console.log('Message sent: ', res.ts);
+      })
+  } else {
+    console.log('No SLACK STUFF')
+    return Promise.resolve()
+  }
+
 }
 
 let parseRSSUrl = url => {
@@ -88,7 +109,7 @@ MongoClient.connect(url).then(client => {
       }
     ]).toArray()
       .then(result => res.send(result))
-      .catch(err => res.error(err))
+      .catch(err => res.status(500).send(err))
   })
 
   app.get('/api/torrents/uncatalogued', (req, res) => {
@@ -98,7 +119,7 @@ MongoClient.connect(url).then(client => {
       }
     }).toArray()
       .then(results => res.send(results))
-      .catch(err => res.error(err))
+      .catch(err => res.status(500).send(err))
   })
 
   app.get('/api/autodownload', (req, res) => {
@@ -124,14 +145,27 @@ MongoClient.connect(url).then(client => {
       })
       .map(e => torrents.findOneAndUpdate({ guid: e.guid }, { $set: e }, { upsert: true }))
       .map(e => fetchImage(e.value))
+      .map(e => checkDownload(e))
       .then(entries => console.log('Parsed rss entries:', entries.length))
       .catch(err => console.error('Error fetching RSS', err))
   }
 
+  function checkDownload (torrent) {
+    if (!torrent.downloaded && torrent.meta) {
+      return autodownload.findOne({
+        name: torrent.meta.name,
+        group: torrent.meta.group
+      }).then(found => found ? download(torrent).then(() => torrent) : torrent)
+    } else {
+      return torrent
+    }
+  }
+
+
 
   function fetchImage (torrent) {
     if (torrent && torrent.meta) {
-      anime.findOne({ name: torrent.meta.name }).then(res => {
+      return anime.findOne({ name: torrent.meta.name }).then(res => {
         if (!res || !res.link) {
           console.log('Getting image for', torrent.meta.name, res)
           return imageSearch(torrent.meta.name).then(imgs => {
@@ -147,6 +181,8 @@ MongoClient.connect(url).then(client => {
               }, { upsert: true })
             }
           }).thenReturn(torrent)
+        } else {
+          return torrent
         }
       })
     } else {
@@ -176,7 +212,7 @@ MongoClient.connect(url).then(client => {
       'meta.name': name,
       'meta.group': group,
       'downloaded': { $exists: false }
-    }).toArray()).map(torrent => download(torrent.link))
+    }).toArray()).map(torrent => download(torrent))
   }
 
   app.post('/api/toggle', (req, res) => {
@@ -192,7 +228,7 @@ MongoClient.connect(url).then(client => {
     console.log('downloading', t)
     return deluge('auth.login', [''])
       .then(() => deluge('web.add_torrents', [[{
-        path: t,
+        path: t.link,
         options: {
           compact_allocation: false,
           download_location: '/downloads',
@@ -205,18 +241,23 @@ MongoClient.connect(url).then(client => {
           prioritize_first_last_pieces: false
         }
       }]]))
-      .then(() => torrents.updateOne({ link: t }, {
+      .then(() => torrents.updateOne({ link: t.link }, {
         $set: { downloaded: true }
       }))
       .then(() => {
         console.log('Downloaded', t)
-      })
+      }).then(() => t.meta ? anime.findOne({ name: t.meta.name }) : undefined).then(anime => notify('C4L2P062F', t.title + " downloaded!", {
+        attachments: anime ? [{ image_url: anime.link }] : []
+      }))
   }
 
   app.post('/api/download', (req, res) => {
-    download(req.body.link)
+    download(req.body)
       .then(resp => res.send('ok'))
-      .catch(err => res.err(err))
+      .catch(err => {
+        console.log(err)
+        res.status(500).send(err)
+      })
   })
 
   const server = app.listen(process.env.PORT || 3000, () => console.log('Getter app listening on port ' + server.address().port))

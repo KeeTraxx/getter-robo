@@ -2,7 +2,7 @@
   <div class="container">
     <div class="entry row" v-for="a in anime" :key="a.name">
       <div class="anime col-md-6 col-sm-12">
-        <div v-if="a.link" class="img" :style="{backgroundImage: `url('${a.anime.link}')`}"></div>
+        <div v-if="a.anime.link" class="img" :style="{backgroundImage: `url('${a.anime.link}')`}"></div>
         <div>{{a.anime.name}}</div>
       </div>
       <div class="col-md-6 col-sm-12">

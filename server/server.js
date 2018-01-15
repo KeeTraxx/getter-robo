@@ -96,13 +96,44 @@ MongoClient.connect(url).then(client => {
   })
 
   app.get('/api/anime', (req, res) => {
-    anime.aggregate([
+    torrents.aggregate([
+      {
+        $match: {
+          meta: {
+            $exists: true
+          }
+        }
+      },
+      {
+        $sort: {
+          pubDate: -1  
+        }
+      },
       {
         $lookup: {
-          from: 'torrents',
-          localField: 'name',
-          foreignField: 'meta.name',
-          as: 'torrents'
+          from: 'anime',
+          localField: 'meta.name',
+          foreignField: 'name',
+          as: 'anime'
+        }
+      },
+      {
+        $group: {
+          _id: {
+            anime: '$anime'
+          },
+          torrents: {
+            $push: '$$ROOT'
+          }
+        }
+      },
+      {
+        $project: {
+          anime: {
+            $arrayElemAt: ['$_id.anime', 0]
+          },
+          _id: 0,
+          torrents: 1
         }
       }
     ]).toArray()
@@ -121,7 +152,9 @@ MongoClient.connect(url).then(client => {
   })
 
   app.get('/api/autodownload', (req, res) => {
-    autodownload.find().toArray().then(a => res.send(a))
+    autodownload.find().sort({
+      pubDate: -1
+    }).toArray().then(a => res.send(a))
   })
 
   function fetchRSS () {

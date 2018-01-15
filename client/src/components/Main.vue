@@ -2,8 +2,8 @@
   <div class="container">
     <div class="entry row" v-for="a in anime" :key="a.name">
       <div class="anime col-md-6 col-sm-12">
-        <div v-if="a.link" class="img" :style="{backgroundImage: `url('${a.link}')`}"></div>
-        <div>{{a.name}}</div>
+        <div v-if="a.link" class="img" :style="{backgroundImage: `url('${a.anime.link}')`}"></div>
+        <div>{{a.anime.name}}</div>
       </div>
       <div class="col-md-6 col-sm-12">
         <div class="btn-group" v-for="(torrents, group) in a.torrents" :key="group">
@@ -70,7 +70,9 @@ export default {
     },
     refresh () {
       this.$http.get('/api/anime').then(res => {
+        console.log(res.body)
         res.body.forEach(anime => {
+          console.log(anime)
           anime.torrents = nest(anime.torrents, [t => t.meta.group])
         })
         this.anime = res.body

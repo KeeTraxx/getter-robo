@@ -165,8 +165,9 @@ MongoClient.connect(url).then(client => {
     }
 
     query = encodeURI(query)
-
-    return parseRSSUrl('https://nyaa.si/?page=rss&q=' + query + '&c=1_2&m=1&f=0')
+    let url = 'https://nyaa.si/?page=rss&q=' + query + '&c=1_2&m=1&f=0'
+    console.log('fetching... ' + url)
+    return parseRSSUrl(url)
       .map(e => {
         let matches = regex.exec(e.title)
         e.pubDate = new Date(e.pubDate)
@@ -314,6 +315,13 @@ MongoClient.connect(url).then(client => {
         console.log(err)
         res.status(500).send(err)
       })
+  })
+
+  app.get('/api/fetch', (req, res) => {
+    console.log(req.query.query)
+    fetchRSS(req.query.query).then(() => res.send({
+      status: 'ok'
+    }))
   })
 
   const server = app.listen(process.env.PORT || 3000, () => console.log('Getter app listening on port ' + server.address().port))

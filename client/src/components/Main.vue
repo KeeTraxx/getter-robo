@@ -8,7 +8,7 @@
       <div class="col-md-6 col-sm-12">
         <div class="btn-group" v-for="(torrents, group) in a.torrents" :key="group">
           <button :class="{'btn-primary': isAutodownloading(a.name, group), 'btn-secondary': !isAutodownloading(a.name, group)}" class="btn btn-sm" @click="toggle(a.name, group)">{{group}}</button>
-          <button @click="selectedTorrents = torrents" :class="{'btn-outline-primary': isAutodownloading(a.name, group), 'btn-outline-secondary': !isAutodownloading(a.name, group)}" class="btn btn-sm " v-b-modal.torrents>{{last(torrents).meta.episode}} ({{ago(last(torrents).pubDate)}})</button>
+          <button @click="selectedTorrents = torrents" :class="{'btn-outline-primary': isAutodownloading(a.name, group), 'btn-outline-secondary': !isAutodownloading(a.name, group)}" class="btn btn-sm " v-b-modal.torrents>{{torrents[0].meta.episode}} ({{ago(torrents[0].pubDate)}})</button>
         </div>
       </div>
     </div>
@@ -17,6 +17,7 @@
       <div class="btn-group" v-for="torrent in selectedTorrents" :key="torrent.guid">
         <div @click="download(torrent)" :class="{'btn-primary': torrent.downloaded, 'btn-secondary': !torrent.downloaded}" class="btn">{{torrent.title}}</div>
       </div>
+      <button class="btn btn-success" @click="fetch(selectedTorrents[0].meta.name)">Fetch this series</button>
     </b-modal>
   </div>
 </template>
@@ -51,7 +52,6 @@ export default {
   methods: {
     download (torrent) {
       this.$http.post('/api/download', torrent).then(res => {
-        console.log(res)
       })
     },
     toggle (name, group) {
@@ -68,15 +68,15 @@ export default {
     isAutodownloading (name, group) {
       return this.autodownload.find(d => d.name === name && d.group === group)
     },
+    fetch (anime) {
+      this.$http.get('/api/fetch?query=' + encodeURI(anime)).then(() => this.refresh())
+    },
     refresh () {
       this.$http.get('/api/anime').then(res => {
-        console.log(res.body)
         res.body.forEach(anime => {
-          console.log(anime)
           anime.torrents = nest(anime.torrents, [t => t.meta.group])
         })
         this.anime = res.body
-        console.log(this.anime)
       })
 
       this.$http.get('/api/autodownload').then(res => {

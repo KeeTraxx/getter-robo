@@ -106,7 +106,7 @@ MongoClient.connect(url).then(client => {
       },
       {
         $sort: {
-          pubDate: -1  
+          pubDate: -1
         }
       },
       {
@@ -157,8 +157,16 @@ MongoClient.connect(url).then(client => {
     }).toArray().then(a => res.send(a))
   })
 
-  function fetchRSS () {
-    return parseRSSUrl('https://nyaa.si/?page=rss&q=720&c=1_2&m=1&f=0')
+  function fetchRSS (query) {
+    if (query) {
+      query += ' 720'
+    } else {
+      query = '720'
+    }
+
+    query = encodeURI(query)
+
+    return parseRSSUrl('https://nyaa.si/?page=rss&q=' + query + '&c=1_2&m=1&f=0')
       .map(e => {
         let matches = regex.exec(e.title)
         e.pubDate = new Date(e.pubDate)
@@ -194,7 +202,7 @@ MongoClient.connect(url).then(client => {
   }
 
   function saveAnime (torrent) {
-    console.log('saveanime', torrent)
+    // console.log('saveanime', torrent)
     if (torrent.meta) {
       return anime.findOneAndUpdate({ name: torrent.meta.name }, { $set: { name: torrent.meta.name } }, { upsert: true })
         .then(() => torrent)
@@ -286,7 +294,6 @@ MongoClient.connect(url).then(client => {
         console.log('Downloaded', t)
         return t
       }).then(() => {
-        console.log('finding anime in', t)
         return t.meta ? anime.findOne({ name: t.meta.name }) : undefined
       }).then(a => {
         console.log('notify anime', a)

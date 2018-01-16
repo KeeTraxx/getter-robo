@@ -96,45 +96,39 @@ MongoClient.connect(url).then(client => {
   })
 
   app.get('/api/anime', (req, res) => {
-    torrents.aggregate([
+    anime.aggregate([
       {
-        $match: {
-          meta: {
-            $exists: true
-          }
+        $lookup: {
+          from: 'torrents',
+          let: { animename: '$name' },
+          pipeline: [
+            {
+              $match: {
+                $and: [
+                  {
+                    $expr: {
+                      $eq: ['$$animename', '$meta.name']
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              $sort: {
+                pubDate: -1
+              }
+            }
+          ],
+          as: 'torrents'
         }
       },
       {
         $sort: {
-          pubDate: -1
+          'torrents.0.pubDate': -1
         }
       },
       {
-        $lookup: {
-          from: 'anime',
-          localField: 'meta.name',
-          foreignField: 'name',
-          as: 'anime'
-        }
-      },
-      {
-        $group: {
-          _id: {
-            anime: '$anime'
-          },
-          torrents: {
-            $push: '$$ROOT'
-          }
-        }
-      },
-      {
-        $project: {
-          anime: {
-            $arrayElemAt: ['$_id.anime', 0]
-          },
-          _id: 0,
-          torrents: 1
-        }
+        $limit: 1
       }
     ]).toArray()
       .then(result => res.send(result))

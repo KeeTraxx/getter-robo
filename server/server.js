@@ -126,9 +126,6 @@ MongoClient.connect(url).then(client => {
         $sort: {
           'torrents.0.pubDate': -1
         }
-      },
-      {
-        $limit: 1
       }
     ]).toArray()
       .then(result => res.send(result))

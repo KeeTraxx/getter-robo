@@ -1,14 +1,14 @@
 <template>
   <div class="container" v-if="anime">
-    <div class="entry row" v-for="a in anime" :key="a.anime.name">
+    <div class="entry row" v-for="a in anime" :key="a.name">
       <div class="anime col-md-6 col-sm-12">
-        <div v-if="a.anime.link" class="img" :style="{backgroundImage: `url('${a.anime.link}')`}"></div>
-        <div>{{a.anime.name}}</div>
+        <div v-if="a.link" class="img" :style="{backgroundImage: `url('${a.link}')`}"></div>
+        <div>{{a.name}}</div>
       </div>
       <div class="col-md-6 col-sm-12">
         <div class="btn-group" v-for="(torrents, group) in a.torrents" :key="group">
-          <button :class="{'btn-primary': isAutodownloading(a.anime.name, group), 'btn-secondary': !isAutodownloading(a.anime.name, group)}" class="btn btn-sm" @click="toggle(a.anime.name, group)">{{group}}</button>
-          <button @click="selectedTorrents = torrents" :class="{'btn-outline-primary': isAutodownloading(a.anime.name, group), 'btn-outline-secondary': !isAutodownloading(a.anime.name, group)}" class="btn btn-sm " v-b-modal.torrents>{{torrents[0].meta.episode}} ({{ago(torrents[0].pubDate)}})</button>
+          <button :class="{'btn-primary': isAutodownloading(a.name, group), 'btn-secondary': !isAutodownloading(a.name, group)}" class="btn btn-sm" @click="toggle(a.name, group)">{{group}}</button>
+          <button @click="selectedTorrents = torrents" :class="{'btn-outline-primary': isAutodownloading(a.name, group), 'btn-outline-secondary': !isAutodownloading(a.name, group)}" class="btn btn-sm " v-b-modal.torrents>{{torrents[0].meta.episode}} ({{ago(torrents[0].pubDate)}})</button>
         </div>
       </div>
     </div>

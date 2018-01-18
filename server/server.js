@@ -58,7 +58,7 @@ let reqId = 0;
 let deluge = (method, params) => {
   return request({
     method: 'POST',
-    uri: 'http://192.168.0.199:8112/json',
+    uri: 'http://rancher.compile.ch:8112/json',
     json: true,
     body: {
       id: ++reqId,

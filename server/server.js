@@ -6,8 +6,14 @@ const MongoClient = require('mongodb').MongoClient
 const url = 'mongodb://mongodb/getter-robo'
 const regex = /^\[(.+?)\]\s+([^\[\]]+?)\s*-\s+(\d+)\s+.*(720|1080|480).*\.(mp4|mkv)$/
 
-MongoClient.connect(url).then(client => {
+async function main() {
+  const client = await MongoClient.connect(url)
   let db = client.db('getter-robo')
+  client.db()
+}
+
+.then(client => {
+  
   let torrents = db.collection('torrents')
   let autodownload = db.collection('autodownload')
 

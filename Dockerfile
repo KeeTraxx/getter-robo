@@ -1,11 +1,11 @@
-FROM node:9-alpine
+FROM node:lts-alpine
 
 COPY . /app
 
 RUN ls /app
 
-RUN cd /app/client && yarn install && yarn build
-RUN cd /app/server && yarn install && ln -s ../client/dist public
+RUN cd /app/client && npm install && npm build
+RUN cd /app/server && npm install && ln -s ../client/dist public
 
 WORKDIR /app/server
 

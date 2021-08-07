@@ -1,0 +1,45 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./getter-robo.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Anime {
+  id           Int            @id @default(autoincrement())
+  createdAt    DateTime       @default(now())
+  name         String         @unique
+  Torrent      Torrent[]
+  AutoDownload AutoDownload[]
+}
+
+model Subber {
+  id      Int       @id @default(autoincrement())
+  name    String    @unique
+  Torrent Torrent[]
+}
+
+model Torrent {
+  id         Int      @id @default(autoincrement())
+  anime      Anime?   @relation(fields: [animeId], references: [id])
+  subber     Subber?  @relation(fields: [subberId], references: [id])
+  title      String
+  link       String   @unique
+  pubDate    DateTime
+  guid       String
+  episode    Int
+  resolution Int
+  extention  String
+  animeId    Int
+  subberId   Int
+}
+
+model AutoDownload {
+  anime      Anime @relation(fields: [animeId], references: [id])
+  animeId    Int
+  resolution Int
+
+  @@unique([resolution, animeId])
+}

@@ -1,6 +1,6 @@
 datasource db {
   provider = "sqlite"
-  url      = "file:./getter-robo.db"
+  url      = "file:./getter-robo.sqlite"
 }
 
 generator client {
@@ -8,38 +8,54 @@ generator client {
 }
 
 model Anime {
-  id           Int            @id @default(autoincrement())
   createdAt    DateTime       @default(now())
-  name         String         @unique
+  newestEpisode DateTime @default(now())
+  name         String         @id
+  Episode      Episode[]
   Torrent      Torrent[]
-  AutoDownload AutoDownload[]
+  AnimeSubbers AnimeSubbers[]
+}
+
+model AnimeSubbers {
+  anime      Anime  @relation(fields: [animeName], references: [name])
+  animeName  String
+  subber     Subber @relation(fields: [subberName], references: [name])
+  subberName String
+
+  autodownload Boolean @default(false)
+
+  @@id([animeName, subberName])
+}
+
+model Episode {
+  anime     Anime    @relation(fields: [animeName], references: [name])
+  animeName String
+  episode   String
+  createdAt DateTime @default(now())
+
+  Torrent Torrent[]
+  @@id([animeName, episode])
 }
 
 model Subber {
-  id      Int       @id @default(autoincrement())
-  name    String    @unique
-  Torrent Torrent[]
+  name         String         @id
+  Torrent      Torrent[]
+  createdAt    DateTime       @default(now())
+  AnimeSubbers AnimeSubbers[]
 }
 
 model Torrent {
-  id         Int      @id @default(autoincrement())
-  anime      Anime?   @relation(fields: [animeId], references: [id])
-  subber     Subber?  @relation(fields: [subberId], references: [id])
-  title      String
-  link       String   @unique
-  pubDate    DateTime
-  guid       String
-  episode    Int
-  resolution Int
-  extention  String
-  animeId    Int
-  subberId   Int
-}
-
-model AutoDownload {
-  anime      Anime @relation(fields: [animeId], references: [id])
-  animeId    Int
-  resolution Int
-
-  @@unique([resolution, animeId])
+  infoHash      String   @id
+  title         String
+  link          String   @unique
+  pubDate       DateTime
+  guid          String   @unique
+  resolution    Int
+  extention     String
+  subberName    String
+  animeName     String
+  anime         Anime    @relation(fields: [animeName], references: [name])
+  episode       Episode  @relation(fields: [animeName, episodeString], references: [animeName, episode])
+  subber        Subber   @relation(fields: [subberName], references: [name])
+  episodeString String
 }

@@ -1,0 +1,10 @@
+
+
+PUT http://localhost:8080/api/anime
+Content-Type: application/json
+
+{
+    "animeName": "One Piece",
+    "subberName": "SubsPlease",
+    "autodownload": true
+}

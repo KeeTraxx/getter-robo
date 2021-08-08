@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Put } from '@nestjs/common';
 import { ApiBody } from '@nestjs/swagger';
-import { Anime, AnimeSubbers } from '@prisma/client';
+import { Anime, AnimeSubber } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Controller(['api/anime'])
@@ -12,13 +12,13 @@ export class AnimeController {
     return this.prismaService.anime.findMany({
       orderBy: [{ newestEpisode: 'desc' }],
       take: 50,
-      include: { AnimeSubbers: {}, Episode: { orderBy: { episode: 'desc' } } },
+      include: { subbers: {}, episodes: { orderBy: { episode: 'desc' } } },
     });
   }
 
   @Put()
-  async setAutoDownload(@Body() newSub: AnimeSubbers): Promise<AnimeSubbers> {
-    const a = await this.prismaService.animeSubbers.update({
+  async setAutoDownload(@Body() newSub: AnimeSubber): Promise<AnimeSubber> {
+    const a = await this.prismaService.animeSubber.update({
       data: newSub,
       where: {
         animeName_subberName: {

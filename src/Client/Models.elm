@@ -1,17 +1,15 @@
 module Client.Models exposing (..)
 
-import Dict exposing (Dict)
 import Iso8601
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
-import Json.Encode
 import Time exposing (Posix)
 
 
 type alias Model =
-    { torrents : Dict String Torrent
+    { anime : List Anime
     , input : UserInput
-    , inspect : Maybe Torrent
+    , inspect : Maybe Anime
     }
 
 
@@ -21,78 +19,82 @@ type UserInput
     | Filter String
 
 
-
--- https://github.com/webtorrent/webtorrent/blob/master/docs/api.md
-
-
 type alias Torrent =
-    { name : String
+    { title : String
     , infoHash : String
-    , magnetURI : String
-    , files : List File
-    , timeRemaining : Maybe Float
-    , downloaded : Int
-    , uploaded : Int
-    , downloadSpeed : Float
-    , uploadSpeed : Float
-    , progress : Float
-    , ratio : Maybe Float
-    , numPeers : Int
-    , path : String
-    , length : Maybe Int
-    , created : Maybe Posix
-    , createdBy : Maybe String
-    , comment : Maybe String
+    , episodeString : String
+    , subberName : String
+    , animeName : String
+    , link : String
+    , pubDate : Posix
+    , guid : String
+    , resolution : Int
+    , extention : String
     }
+
+
+type alias AnimeSubber =
+    { animeName : String
+    , subberName : String
+    , autoDownload : Bool
+    }
+
+
+type alias Subber =
+    { subberName : String
+    }
+
+
+type alias Episode =
+    { animeName : String
+    , episode : String
+    , createdAt : Posix
+    }
+
+
+type alias Anime =
+    { name : String
+    , newestEpisode : Posix
+    , subbers : List AnimeSubber
+    , episodes : List Episode
+    }
+
+
+animeDecoder : Decoder Anime
+animeDecoder =
+    Json.Decode.succeed Anime
+        |> required "name" string
+        |> required "newestEpisode" Iso8601.decoder
+        |> required "subbers" (list animeSubberDecoder)
+        |> required "episodes" (list episodeDecoder)
+
+
+animeSubberDecoder : Decoder AnimeSubber
+animeSubberDecoder =
+    Json.Decode.succeed AnimeSubber
+        |> required "animeName" string
+        |> required "subberName" string
+        |> required "autodownload" bool
+
+
+episodeDecoder : Decoder Episode
+episodeDecoder =
+    Json.Decode.succeed Episode
+        |> required "animeName" string
+        |> required "episode" string
+        |> required "createdAt" Iso8601.decoder
 
 
 torrentDecoder : Decoder Torrent
 torrentDecoder =
     Json.Decode.succeed Torrent
-        |> required "name" string
+        |> required "title" string
         |> required "infoHash" string
-        |> required "magnetURI" string
-        |> required "files" (list fileDecoder)
-        |> optional "timeRemaining" (nullable float) Nothing
-        |> required "downloaded" int
-        |> required "uploaded" int
-        |> required "downloadSpeed" float
-        |> required "uploadSpeed" float
-        |> required "progress" float
-        |> optional "ratio" (nullable float) Nothing
-        |> required "numPeers" int
-        |> required "path" string
-        |> optional "length" (nullable int) Nothing
-        |> optional "created" (nullable Iso8601.decoder) Nothing
-        |> optional "createdBy" (nullable string) Nothing
-        |> optional "comment" (nullable string) Nothing
-
-
-type alias File =
-    { name : String
-    , path : String
-    , length : Int
-    , downloaded : Int
-    , progress : Float
-    }
-
-
-fileDecoder : Decoder File
-fileDecoder =
-    Json.Decode.succeed File
-        |> required "name" string
-        |> required "path" string
-        |> required "length" int
-        |> optional "downloaded" int 0
-        |> optional "progress" float 0.0
-
-
-type alias MagnetUriRequest =
-    { magnetURI : String
-    }
-
-
-magnetUriRequestEncoder : MagnetUriRequest -> Json.Encode.Value
-magnetUriRequestEncoder magnetUriRequest =
-    Json.Encode.object
-        [ ( "magnetURI", Json.Encode.string magnetUriRequest.magnetURI ) ]
+        |> required "episodeString" string
+        |> required "subberName" string
+        |> required "animeName" string
+        |> required "link" string
+        |> required "pubDate" Iso8601.decoder
+        |> required "guid" string
+        |> required "resolution" int
+        |> required "extention" string

@@ -75,7 +75,7 @@ export class NyaaService implements OnModuleInit {
           },
         });
 
-        const animeSubber = await this.prismaService.animeSubbers.upsert({
+        const animeSubber = await this.prismaService.animeSubber.upsert({
           create: { animeName, subberName },
           update: {},
           where: { animeName_subberName: { animeName, subberName } },

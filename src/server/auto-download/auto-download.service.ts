@@ -21,7 +21,7 @@ export class AutoDownloadService implements OnModuleInit, OnModuleDestroy {
       async ({ animeName, resolution, subberName, link }) => {
         if (
           resolution == 720 &&
-          (await this.prismaService.animeSubbers.count({
+          (await this.prismaService.animeSubber.count({
             where: {
               animeName,
               subberName,

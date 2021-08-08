@@ -8,15 +8,15 @@ generator client {
 }
 
 model Anime {
-  createdAt    DateTime       @default(now())
-  newestEpisode DateTime @default(now())
-  name         String         @id
-  Episode      Episode[]
-  Torrent      Torrent[]
-  AnimeSubbers AnimeSubbers[]
+  createdAt     DateTime      @default(now())
+  newestEpisode DateTime      @default(now())
+  name          String        @id
+  episodes      Episode[]
+  torrents      Torrent[]
+  subbers       AnimeSubber[]
 }
 
-model AnimeSubbers {
+model AnimeSubber {
   anime      Anime  @relation(fields: [animeName], references: [name])
   animeName  String
   subber     Subber @relation(fields: [subberName], references: [name])
@@ -33,15 +33,15 @@ model Episode {
   episode   String
   createdAt DateTime @default(now())
 
-  Torrent Torrent[]
+  torrents Torrent[]
   @@id([animeName, episode])
 }
 
 model Subber {
-  name         String         @id
-  Torrent      Torrent[]
-  createdAt    DateTime       @default(now())
-  AnimeSubbers AnimeSubbers[]
+  name      String        @id
+  torrents  Torrent[]
+  createdAt DateTime      @default(now())
+  subbers   AnimeSubber[]
 }
 
 model Torrent {

@@ -3,6 +3,7 @@ module Client.Models exposing (..)
 import Iso8601
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
+import Json.Encode
 import Time exposing (Posix)
 
 
@@ -75,6 +76,15 @@ animeSubberDecoder =
         |> required "animeName" string
         |> required "subberName" string
         |> required "autodownload" bool
+
+
+animeSubberEncoder : AnimeSubber -> Json.Encode.Value
+animeSubberEncoder animeSubber =
+    Json.Encode.object
+        [ ( "animeName", Json.Encode.string animeSubber.animeName )
+        , ( "subberName", Json.Encode.string animeSubber.subberName )
+        , ( "autodownload", Json.Encode.bool animeSubber.autoDownload )
+        ]
 
 
 episodeDecoder : Decoder Episode

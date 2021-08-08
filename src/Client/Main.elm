@@ -1,13 +1,12 @@
 module Client.Main exposing (..)
 
 import Browser
-import Client.Models exposing (Anime, Model, Torrent, animeDecoder)
-import Dict exposing (Dict)
-import Html exposing (Attribute, Html, aside, button, dl, footer, h1, header, input, main_, p, text)
-import Html.Attributes exposing (class, placeholder, type_)
+import Client.Models exposing (Anime, AnimeSubber, Model, animeDecoder, animeSubberEncoder)
+import Html exposing (Attribute, Html, aside, button, div, dl, footer, h1, h2, header, img, input, li, main_, text, ul)
+import Html.Attributes exposing (attribute, class, placeholder, type_)
 import Html.Events exposing (onClick, onInput)
 import Http
-import Json.Decode as Decode exposing (Error(..), decodeString, field, list)
+import Json.Decode as Decode exposing (Error(..), field, list)
 
 
 main : Program () Model Msg
@@ -30,8 +29,10 @@ type Msg
     | UpdateInput String
     | NoOp
     | NoOpResult (Result Http.Error ())
+    | ToggleAutoDownload AnimeSubber
     | InspectAnime Anime
     | ClearInspect
+    | RefreshAnime
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -64,6 +65,12 @@ update msg model =
 
         ClearInspect ->
             ( { model | inspect = Nothing }, Cmd.none )
+
+        ToggleAutoDownload animeSubber ->
+            ( model, toggleAnimeSubber animeSubber )
+
+        RefreshAnime ->
+            ( model, loadAnime )
 
 
 parseUserInput : String -> Client.Models.UserInput
@@ -109,13 +116,41 @@ view model =
                 []
             ]
         , main_ []
-            [ p [] [ model.anime |> List.length |> String.fromInt |> text ] ]
+            [ ul [] (List.map animeHtml model.anime) ]
         , aside
             [ class (return "visible" "hidden" model.inspect) ]
             (Maybe.withDefault [] (Maybe.map detailsHtml model.inspect))
         , footer [] []
         ]
     }
+
+
+animeHtml : Anime -> Html Msg
+animeHtml anime =
+    li
+        [ class
+            (if isAutoDownloaded anime then
+                "autodownloaded"
+
+             else
+                ""
+            )
+        ]
+        [ img [] []
+        , h1 [] [ text anime.name ]
+        , h2 [] [ text (Maybe.withDefault "n/a" (Maybe.map (\ep -> ep.episode) (anime.episodes |> List.head))) ]
+        , div [] (List.map subberButtons anime.subbers)
+        ]
+
+
+isAutoDownloaded : Anime -> Bool
+isAutoDownloaded anime =
+    not (List.filter (\s -> s.autoDownload) anime.subbers |> List.isEmpty)
+
+
+subberButtons : Client.Models.AnimeSubber -> Html Msg
+subberButtons subber =
+    button [ onClick (ToggleAutoDownload subber) ] [ text subber.subberName ]
 
 
 isFilter : Client.Models.UserInput -> Bool
@@ -169,3 +204,16 @@ subscriptions _ =
 loadAnime : Cmd Msg
 loadAnime =
     Http.get { url = "/api/anime", expect = Http.expectJson RecvAnime (list animeDecoder) }
+
+
+toggleAnimeSubber : AnimeSubber -> Cmd Msg
+toggleAnimeSubber animeSubber =
+    Http.request
+        { method = "PUT"
+        , headers = []
+        , url = "/api/anime"
+        , body = Http.jsonBody (animeSubberEncoder { animeSubber | autoDownload = not animeSubber.autoDownload })
+        , expect = Http.expectWhatever (\_ -> RefreshAnime)
+        , timeout = Nothing
+        , tracker = Nothing
+        }

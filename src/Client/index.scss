@@ -1,10 +1,10 @@
 body {
   display: grid;
   grid-template:
-    [header-left] "head head" 2em [header-right]
-    [main-left] "main main" auto [main-right]
-    [inspector-left] "inspector inspector" min-content [inspector-right]
-    [footer-left] "foot foot" 2em [footer-right]
+    [header-left] 'head head' 2em [header-right]
+    [main-left] 'main main' auto [main-right]
+    [inspector-left] 'inspector inspector' min-content [inspector-right]
+    [footer-left] 'foot foot' 2em [footer-right]
     / auto 20rem;
   width: 100vw;
   height: 100vh;
@@ -31,39 +31,20 @@ header {
 main {
   grid-area: main;
   overflow: auto;
-  > table {
-    width: 100%;
-    th,
-    td {
-      padding: 0.2em 0.3em;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      vertical-align: middle;
-      &.progress {
-        display: flex;
-      }
-    }
+  > ul {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 1em;
 
-    tr {
-      transition: all 300ms;
-      &.selected {
-        background-color: #0ff;
-      }
-    }
-
-    progress {
-      flex: 1 1;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-items: center;
-      &::before {
-        content: attr(value) "%";
-        text-align: center;
-        margin-top: 0.5em;
-      }
-      &[value] {
-        height: 2em;
+    > li {
+      box-sizing: border-box;
+      width: 20em;
+      padding: 1em;
+      margin: 1em;
+      background-color: pink;
+      &.autodownloaded {
+        border: solid 1px red;
       }
     }
   }

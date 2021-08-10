@@ -27,3 +27,5 @@ networks:
 ### Initialize DB
 
 `docker-compose run npx prisma db push`
+
+## Good to know

@@ -24,6 +24,9 @@ export class ImageService implements OnModuleInit {
   }
 
   async saveImages(anime: Anime): Promise<Anime> {
+    if (!this.CX || !this.API_KEY) {
+      return;
+    }
     this.logger.log(`Loading images for ${anime.name}...`);
     const c = new customsearch_v1.Customsearch({ auth: this.API_KEY });
     const results = await c.cse.list({

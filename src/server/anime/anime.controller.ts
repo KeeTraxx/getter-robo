@@ -1,11 +1,16 @@
-import { Body, Controller, Get, Put } from '@nestjs/common';
-import { Anime, AnimeSubber } from '@prisma/client';
+import { Body, Controller, Get, Logger, Post, Put } from '@nestjs/common';
+import { Anime, AnimeSubber, Torrent } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import * as moment from 'moment';
+import { TorrentService } from '../torrent/torrent.service';
 
 @Controller(['api/anime'])
 export class AnimeController {
-  constructor(private readonly prismaService: PrismaService) {}
+  private readonly logger = new Logger(AnimeController.name);
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly torrentService: TorrentService,
+  ) {}
 
   @Get()
   async index(): Promise<Array<Anime>> {
@@ -15,7 +20,10 @@ export class AnimeController {
         take: 50,
         include: {
           subbers: {},
-          episodes: { orderBy: { episode: 'desc' } },
+          episodes: {
+            orderBy: { episode: 'desc' },
+            include: { torrents: { orderBy: { subberName: 'asc' } } },
+          },
           mainImage: {},
         },
       })
@@ -37,5 +45,15 @@ export class AnimeController {
       },
     });
     return a;
+  }
+
+  @Post('download')
+  async download(@Body() { infoHash }: { infoHash: string }): Promise<Torrent> {
+    const torrent = await this.prismaService.torrent.findUnique({
+      where: { infoHash },
+    });
+    this.logger.log(`Downloading infohash ${torrent.title}`);
+    this.torrentService.downloadTorrent(torrent);
+    return torrent;
   }
 }

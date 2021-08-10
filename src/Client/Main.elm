@@ -1,9 +1,9 @@
 module Client.Main exposing (..)
 
 import Browser
-import Client.Models exposing (Anime, AnimeSubber, Model, animeDecoder, animeSubberEncoder)
+import Client.Models exposing (Anime, AnimeSubber, Episode, Model, Torrent, animeDecoder, animeSubberEncoder)
 import Html exposing (Attribute, Html, aside, button, div, dl, footer, h1, h2, h3, header, img, input, li, main_, span, text, ul)
-import Html.Attributes exposing (class, placeholder, src, type_)
+import Html.Attributes exposing (class, placeholder, src, style, type_)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Error(..), field, list)
@@ -32,6 +32,7 @@ type Msg
     | NoOpResult (Result Http.Error ())
     | ToggleAutoDownload AnimeSubber
     | InspectAnime Anime
+    | PostMagnet Torrent
     | ClearInspect
     | RefreshAnime
 
@@ -61,14 +62,17 @@ update msg model =
         NoOpResult _ ->
             ( model, Cmd.none )
 
-        InspectAnime torrent ->
-            ( { model | inspect = Just torrent }, Cmd.none )
+        InspectAnime anime ->
+            ( { model | inspect = Just anime }, Cmd.none )
 
         ClearInspect ->
             ( { model | inspect = Nothing }, Cmd.none )
 
         ToggleAutoDownload animeSubber ->
             ( model, toggleAnimeSubber animeSubber )
+
+        PostMagnet torrent ->
+            ( model, postMagnet torrent )
 
         RefreshAnime ->
             ( model, loadAnime )
@@ -120,9 +124,7 @@ view model =
                 ]
             , main_ [ class "flex flex-1 overflow-auto" ]
                 [ ul [ class "flex flex-wrap items-stretch gap-6" ] (List.map animeHtml model.anime) ]
-            , aside
-                [ class (return "visible" "hidden" model.inspect) ]
-                (Maybe.withDefault [] (Maybe.map detailsHtml model.inspect))
+            , Maybe.withDefault (div [] []) (Maybe.map detailsHtml model.inspect)
             , footer [] [ text (Maybe.withDefault "" model.errorMessage) ]
             ]
         ]
@@ -131,21 +133,18 @@ view model =
 
 animeHtml : Anime -> Html Msg
 animeHtml anime =
-    let
-        imgEl : Html Msg
-        imgEl =
-            Maybe.withDefault (div [ class "flex-1 mb-2" ] []) (Maybe.map (\i -> img [ class "object-cover w-full h-36 mb-2", src i.url ] []) anime.mainImage)
-    in
     li
         [ class "card flex flex-col" ]
-        [ imgEl
-        , h2 [ class "mx-2" ] [ text anime.name ]
-        , h3 [ class "mx-2" ]
-            (Maybe.withDefault
-                [ span [] [] ]
-                (Maybe.map (\ep -> [ span [ class "mr-2" ] [ text ep.episode ], span [ class "text-sm opacity-70" ] [ text <| anime.age ] ]) (anime.episodes |> List.head))
-            )
-        , ul [ class "flex flex-row flex-wrap m-2 gap-1" ] (List.map subberButtons anime.subbers)
+        [ img [ class "object-cover w-full h-36", src anime.mainImage.url ] []
+        , div [ class "p-4" ]
+            [ h2 [ class "cursor-pointer", onClick <| InspectAnime anime ] [ text anime.name ]
+            , h3 []
+                (Maybe.withDefault
+                    [ span [] [] ]
+                    (Maybe.map (\ep -> [ span [ class "mr-2" ] [ text ep.episode ], span [ class "text-sm opacity-70" ] [ text <| anime.age ] ]) (anime.episodes |> List.head))
+                )
+            , ul [ class "flex flex-row flex-wrap gap-1" ] (List.map subberButtons anime.subbers)
+            ]
         ]
 
 
@@ -191,12 +190,33 @@ return true false maybe =
             false
 
 
-detailsHtml : Anime -> List (Html Msg)
-detailsHtml _ =
-    [ button [ onClick ClearInspect ] [ text "close" ]
-    , dl []
-        []
-    ]
+detailsHtml : Anime -> Html Msg
+detailsHtml anime =
+    div [ class "fixed w-full h-full flex items-center justify-center p-10 bg-black bg-opacity-60 inset-0" ]
+        [ div [ class "dialog flex flex-col" ]
+            [ img [ class "object-cover w-full h-56", src anime.mainImage.url ] []
+            , div [ class "px-4 py-2 flex-1 overflow-auto" ]
+                [ h2 [] [ text anime.name ]
+                , ul [] <| List.map episodeHtml anime.episodes
+                ]
+            , button [ onClick ClearInspect ] [ text "close" ]
+            ]
+        ]
+
+
+episodeHtml : Episode -> Html Msg
+episodeHtml episode =
+    li [ class "flex flex-row justify-between align-center items-center" ]
+        [ h3 [] [ text episode.episode ]
+        , ul [] <| List.map downloadTorrent episode.torrents
+        ]
+
+
+downloadTorrent : Torrent -> Html Msg
+downloadTorrent torrent =
+    li []
+        [ button [ onClick <| PostMagnet torrent ] [ text <| torrent.subberName ++ " " ++ String.fromInt torrent.resolution ]
+        ]
 
 
 onEnter : msg -> Attribute msg
@@ -234,4 +254,13 @@ toggleAnimeSubber animeSubber =
         , expect = Http.expectWhatever (\_ -> RefreshAnime)
         , timeout = Nothing
         , tracker = Nothing
+        }
+
+
+postMagnet : Torrent -> Cmd Msg
+postMagnet torrent =
+    Http.post
+        { url = "/api/anime/download"
+        , body = Http.stringBody "application/json" ("{\"infoHash\" : \"" ++ torrent.infoHash ++ "\"}")
+        , expect = Http.expectWhatever (\_ -> RefreshAnime)
         }

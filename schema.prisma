@@ -61,17 +61,18 @@ model Subber {
 }
 
 model Torrent {
-  infoHash      String   @id
+  infoHash      String    @id
   title         String
-  link          String   @unique
+  link          String    @unique
   pubDate       DateTime
-  guid          String   @unique
+  guid          String    @unique
   resolution    Int
   extention     String
   subberName    String
   animeName     String
-  anime         Anime    @relation(fields: [animeName], references: [name])
-  episode       Episode  @relation(fields: [animeName, episodeString], references: [animeName, episode])
-  subber        Subber   @relation(fields: [subberName], references: [name])
+  anime         Anime     @relation(fields: [animeName], references: [name])
+  episode       Episode   @relation(fields: [animeName, episodeString], references: [animeName, episode])
+  subber        Subber    @relation(fields: [subberName], references: [name])
   episodeString String
+  downloadAt    DateTime?
 }

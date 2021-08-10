@@ -51,6 +51,7 @@ type alias Episode =
     { animeName : String
     , episode : String
     , createdAt : Posix
+    , torrents : List Torrent
     }
 
 
@@ -61,7 +62,7 @@ type alias Anime =
     , subbers : List AnimeSubber
     , episodes : List Episode
     , images : List AnimeImage
-    , mainImage : Maybe AnimeImage
+    , mainImage : AnimeImage
     }
 
 
@@ -91,7 +92,7 @@ animeDecoder =
         |> required "subbers" (list animeSubberDecoder)
         |> required "episodes" (list episodeDecoder)
         |> optional "images" (list animeImageDecoder) []
-        |> optional "mainImage" (Json.Decode.map Just animeImageDecoder) Nothing
+        |> optional "mainImage" animeImageDecoder { id = 0, animeName = "placeholder", url = "https://danbooru.donmai.us/data/sample/ac/9e/__kiryu_coco_hololive_drawn_by_araki_qbthgry__sample-ac9e680d4b5522d50c52ade80b0c3f45.jpg", createdAt = Time.millisToPosix 0 }
 
 
 animeSubberDecoder : Decoder AnimeSubber
@@ -117,6 +118,7 @@ episodeDecoder =
         |> required "animeName" string
         |> required "episode" string
         |> required "createdAt" Iso8601.decoder
+        |> required "torrents" (list torrentDecoder)
 
 
 torrentDecoder : Decoder Torrent

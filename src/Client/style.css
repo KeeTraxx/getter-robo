@@ -15,6 +15,12 @@
     @apply w-96 shadow-lg bg-gray-900 rounded-lg;
   }
 
+  .dialog {
+    @apply w-full lg:w-6/12 shadow-lg bg-gray-900 rounded-lg;
+
+    max-height: 80vh;
+  }
+
   h1 {
     @apply text-2xl;
   }

@@ -1,5 +1,7 @@
 FROM node:lts-alpine
 
+RUN apk add git --no-cache 
+
 COPY . /app
 
 WORKDIR /app

@@ -107,7 +107,7 @@ view model =
     { title = "test"
     , body =
         [ header []
-            [ h1 [] [ text "Getter Robo" ]
+            [ h1 [ class "grid grid-flow-col grid-rows-2 grid-cols-3 gap-4" ] [ text "Getter Robo" ]
             , input
                 [ type_ "text"
                 , onInput UpdateInput

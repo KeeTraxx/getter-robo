@@ -2,8 +2,8 @@ module Client.Main exposing (..)
 
 import Browser
 import Client.Models exposing (Anime, AnimeSubber, Model, animeDecoder, animeSubberEncoder)
-import Html exposing (Attribute, Html, aside, button, div, dl, footer, h1, h2, header, img, input, li, main_, text, ul)
-import Html.Attributes exposing (class, placeholder, style, type_)
+import Html exposing (Attribute, Html, aside, button, div, dl, footer, h1, h2, h3, header, img, input, li, main_, span, text, ul)
+import Html.Attributes exposing (class, placeholder, src, type_)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Error(..), field, list)
@@ -19,6 +19,7 @@ init _ =
     ( { anime = []
       , input = Client.Models.Empty
       , inspect = Nothing
+      , errorMessage = Nothing
       }
     , loadAnime
     )
@@ -45,8 +46,8 @@ update msg model =
 
                 Err error ->
                     case error of
-                        Http.BadBody errMsg ->
-                            Debug.log errMsg ( model, Cmd.none )
+                        Http.BadBody err ->
+                            ( { model | errorMessage = Just err }, Cmd.none )
 
                         _ ->
                             ( model, Cmd.none )
@@ -104,23 +105,26 @@ errorMessage error =
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "test"
+    { title = "Getter Robo"
     , body =
-        [ header []
-            [ h1 [ class "grid grid-flow-col grid-rows-2 grid-cols-3 gap-4" ] [ text "Getter Robo" ]
-            , input
-                [ type_ "text"
-                , onInput UpdateInput
-                , placeholder "Filter anime"
+        [ div [ class "h-screen flex flex-col p-2" ]
+            [ header [ class "flex flex-row gap-2 m-2" ]
+                [ h1 [ class "flex-none" ] [ text "Getter Robo" ]
+                , input
+                    [ type_ "text"
+                    , onInput UpdateInput
+                    , placeholder "Filter anime"
+                    , class "flex-1"
+                    ]
+                    []
                 ]
-                []
+            , main_ [ class "flex flex-1 overflow-auto" ]
+                [ ul [ class "flex flex-wrap items-stretch gap-6" ] (List.map animeHtml model.anime) ]
+            , aside
+                [ class (return "visible" "hidden" model.inspect) ]
+                (Maybe.withDefault [] (Maybe.map detailsHtml model.inspect))
+            , footer [] [ text (Maybe.withDefault "" model.errorMessage) ]
             ]
-        , main_ []
-            [ ul [] (List.map animeHtml model.anime) ]
-        , aside
-            [ class (return "visible" "hidden" model.inspect) ]
-            (Maybe.withDefault [] (Maybe.map detailsHtml model.inspect))
-        , footer [] []
         ]
     }
 
@@ -128,22 +132,20 @@ view model =
 animeHtml : Anime -> Html Msg
 animeHtml anime =
     let
-        imgSrc =
-            Maybe.withDefault "" (Maybe.map (\img -> img.url) anime.mainImage)
+        imgEl : Html Msg
+        imgEl =
+            Maybe.withDefault (div [ class "flex-1 mb-2" ] []) (Maybe.map (\i -> img [ class "object-cover w-full h-36 mb-2", src i.url ] []) anime.mainImage)
     in
     li
-        [ class
-            (if isAutoDownloaded anime then
-                "autodownload"
-
-             else
-                ""
+        [ class "card flex flex-col" ]
+        [ imgEl
+        , h2 [ class "mx-2" ] [ text anime.name ]
+        , h3 [ class "mx-2" ]
+            (Maybe.withDefault
+                [ span [] [] ]
+                (Maybe.map (\ep -> [ span [ class "mr-2" ] [ text ep.episode ], span [ class "text-sm opacity-70" ] [ text <| anime.age ] ]) (anime.episodes |> List.head))
             )
-        ]
-        [ div [ class "banner", style "background-image" ("url(" ++ imgSrc ++ ")") ] []
-        , h1 [] [ text anime.name ]
-        , h2 [] [ text (Maybe.withDefault "n/a" (Maybe.map (\ep -> "Ep " ++ ep.episode ++ " ") (anime.episodes |> List.head))) ]
-        , div [] (List.map subberButtons anime.subbers)
+        , ul [ class "flex flex-row flex-wrap m-2 gap-1" ] (List.map subberButtons anime.subbers)
         ]
 
 
@@ -154,17 +156,19 @@ isAutoDownloaded anime =
 
 subberButtons : Client.Models.AnimeSubber -> Html Msg
 subberButtons subber =
-    button
-        [ class
-            (if subber.autoDownload then
-                "autodownload"
+    li []
+        [ button
+            [ class
+                (if subber.autoDownload then
+                    "autodownload"
 
-             else
-                ""
-            )
-        , onClick (ToggleAutoDownload subber)
+                 else
+                    ""
+                )
+            , onClick (ToggleAutoDownload subber)
+            ]
+            [ text subber.subberName ]
         ]
-        [ text subber.subberName ]
 
 
 isFilter : Client.Models.UserInput -> Bool

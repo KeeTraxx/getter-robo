@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Put } from '@nestjs/common';
 import { Anime, AnimeSubber } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import * as moment from 'moment';
 
 @Controller(['api/anime'])
 export class AnimeController {
@@ -8,15 +9,20 @@ export class AnimeController {
 
   @Get()
   async index(): Promise<Array<Anime>> {
-    return this.prismaService.anime.findMany({
-      orderBy: [{ newestEpisode: 'desc' }],
-      take: 50,
-      include: {
-        subbers: {},
-        episodes: { orderBy: { episode: 'desc' } },
-        mainImage: {},
-      },
-    });
+    return (
+      await this.prismaService.anime.findMany({
+        orderBy: [{ newestEpisode: 'desc' }],
+        take: 50,
+        include: {
+          subbers: {},
+          episodes: { orderBy: { episode: 'desc' } },
+          mainImage: {},
+        },
+      })
+    ).map((a) => ({
+      ...a,
+      age: moment(a.createdAt).fromNow(),
+    }));
   }
 
   @Put()

@@ -11,6 +11,7 @@ type alias Model =
     { anime : List Anime
     , input : UserInput
     , inspect : Maybe Anime
+    , errorMessage : Maybe String
     }
 
 
@@ -56,6 +57,7 @@ type alias Episode =
 type alias Anime =
     { name : String
     , newestEpisode : Posix
+    , age : String
     , subbers : List AnimeSubber
     , episodes : List Episode
     , images : List AnimeImage
@@ -85,6 +87,7 @@ animeDecoder =
     Json.Decode.succeed Anime
         |> required "name" string
         |> required "newestEpisode" Iso8601.decoder
+        |> required "age" string
         |> required "subbers" (list animeSubberDecoder)
         |> required "episodes" (list episodeDecoder)
         |> optional "images" (list animeImageDecoder) []

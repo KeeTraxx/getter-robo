@@ -12,7 +12,11 @@ export class AnimeController {
     return this.prismaService.anime.findMany({
       orderBy: [{ newestEpisode: 'desc' }],
       take: 50,
-      include: { subbers: {}, episodes: { orderBy: { episode: 'desc' } } },
+      include: {
+        subbers: {},
+        episodes: { orderBy: { episode: 'desc' } },
+        mainImage: {},
+      },
     });
   }
 

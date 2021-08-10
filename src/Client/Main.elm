@@ -3,7 +3,7 @@ module Client.Main exposing (..)
 import Browser
 import Client.Models exposing (Anime, AnimeSubber, Model, animeDecoder, animeSubberEncoder)
 import Html exposing (Attribute, Html, aside, button, div, dl, footer, h1, h2, header, img, input, li, main_, text, ul)
-import Html.Attributes exposing (attribute, class, placeholder, type_)
+import Html.Attributes exposing (class, placeholder, src, style, type_)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Error(..), field, list)
@@ -127,18 +127,22 @@ view model =
 
 animeHtml : Anime -> Html Msg
 animeHtml anime =
+    let
+        imgSrc =
+            Maybe.withDefault "" (Maybe.map (\img -> img.url) anime.mainImage)
+    in
     li
         [ class
             (if isAutoDownloaded anime then
-                "autodownloaded"
+                "autodownload"
 
              else
                 ""
             )
         ]
-        [ img [] []
+        [ div [ class "banner", style "background-image" ("url(" ++ imgSrc ++ ")") ] []
         , h1 [] [ text anime.name ]
-        , h2 [] [ text (Maybe.withDefault "n/a" (Maybe.map (\ep -> ep.episode) (anime.episodes |> List.head))) ]
+        , h2 [] [ text (Maybe.withDefault "n/a" (Maybe.map (\ep -> "Ep " ++ ep.episode ++ " ") (anime.episodes |> List.head))) ]
         , div [] (List.map subberButtons anime.subbers)
         ]
 
@@ -150,7 +154,17 @@ isAutoDownloaded anime =
 
 subberButtons : Client.Models.AnimeSubber -> Html Msg
 subberButtons subber =
-    button [ onClick (ToggleAutoDownload subber) ] [ text subber.subberName ]
+    button
+        [ class
+            (if subber.autoDownload then
+                "autodownload"
+
+             else
+                ""
+            )
+        , onClick (ToggleAutoDownload subber)
+        ]
+        [ text subber.subberName ]
 
 
 isFilter : Client.Models.UserInput -> Bool

@@ -14,6 +14,22 @@ model Anime {
   episodes      Episode[]
   torrents      Torrent[]
   subbers       AnimeSubber[]
+  images        AnimeImage[]
+  mainImage     AnimeImage?   @relation("mainImage", fields: [mainImageId], references: [id])
+  mainImageId   Int?
+}
+
+model AnimeImage {
+  id        Int      @default(autoincrement())
+  anime     Anime    @relation(fields: [animeName], references: [name])
+  animeName String
+  url       String
+  createdAt DateTime @default(now())
+
+  mainImageFor Anime[] @relation("mainImage")
+
+  @@id([id])
+  @@unique([animeName, url])
 }
 
 model AnimeSubber {

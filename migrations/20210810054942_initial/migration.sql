@@ -2,11 +2,22 @@
 CREATE TABLE "Anime" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "newestEpisode" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "name" TEXT NOT NULL PRIMARY KEY
+    "name" TEXT NOT NULL PRIMARY KEY,
+    "mainImageId" INTEGER,
+    FOREIGN KEY ("mainImageId") REFERENCES "AnimeImage" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
-CREATE TABLE "AnimeSubbers" (
+CREATE TABLE "AnimeImage" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "animeName" TEXT NOT NULL,
+    "url" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY ("animeName") REFERENCES "Anime" ("name") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "AnimeSubber" (
     "animeName" TEXT NOT NULL,
     "subberName" TEXT NOT NULL,
     "autodownload" BOOLEAN NOT NULL DEFAULT false,
@@ -48,6 +59,9 @@ CREATE TABLE "Torrent" (
     FOREIGN KEY ("animeName", "episodeString") REFERENCES "Episode" ("animeName", "episode") ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY ("subberName") REFERENCES "Subber" ("name") ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "AnimeImage.animeName_url_unique" ON "AnimeImage"("animeName", "url");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Torrent.link_unique" ON "Torrent"("link");

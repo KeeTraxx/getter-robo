@@ -1,8 +1,9 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Torrent } from '@prisma/client';
+import { Anime, Torrent } from '@prisma/client';
 import * as Parser from 'rss-parser';
 import { Subject } from 'rxjs';
+import { ImageService } from '../image/image.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -22,6 +23,7 @@ export class NyaaService implements OnModuleInit {
     /^\[(.+?)\]\s+([^\[\]]+?)\s*-\s+(\d+)\s+.*(720|1080|480).*\.(mp4|mkv)$/;
 
   public readonly savedTorrents$ = new Subject<Torrent>();
+  public readonly newAnime$ = new Subject<Anime>();
 
   constructor(private prismaService: PrismaService) {}
 
@@ -34,7 +36,7 @@ export class NyaaService implements OnModuleInit {
     const url = this.buildUrl('720');
     this.logger.log(`FETCHING URL ${url}`);
     const feed = await this.rssParser.parseURL(url);
-    for (let item of feed.items.sort((a, b) =>
+    for (const item of feed.items.sort((a, b) =>
       a.isoDate.localeCompare(b.isoDate),
     )) {
       await this.rssItemToTorrent(item);
@@ -57,13 +59,20 @@ export class NyaaService implements OnModuleInit {
 
         this.logger.log(`Saving ${title}`);
 
-        const anime = await this.prismaService.anime.upsert({
-          create: {
-            name: animeName,
-          },
-          update: {},
-          where: { name: animeName },
-        });
+        if (
+          (await this.prismaService.anime.count({
+            where: { name: animeName },
+          })) == 0
+        ) {
+          const anime = await this.prismaService.anime.upsert({
+            create: {
+              name: animeName,
+            },
+            update: {},
+            where: { name: animeName },
+          });
+          this.newAnime$.next(anime);
+        }
 
         const subber = await this.prismaService.subber.upsert({
           create: {

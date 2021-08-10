@@ -58,7 +58,26 @@ type alias Anime =
     , newestEpisode : Posix
     , subbers : List AnimeSubber
     , episodes : List Episode
+    , images : List AnimeImage
+    , mainImage : Maybe AnimeImage
     }
+
+
+type alias AnimeImage =
+    { id : Int
+    , animeName : String
+    , url : String
+    , createdAt : Posix
+    }
+
+
+animeImageDecoder : Decoder AnimeImage
+animeImageDecoder =
+    Json.Decode.succeed AnimeImage
+        |> required "id" int
+        |> required "animeName" string
+        |> required "url" string
+        |> required "createdAt" Iso8601.decoder
 
 
 animeDecoder : Decoder Anime
@@ -68,6 +87,8 @@ animeDecoder =
         |> required "newestEpisode" Iso8601.decoder
         |> required "subbers" (list animeSubberDecoder)
         |> required "episodes" (list episodeDecoder)
+        |> optional "images" (list animeImageDecoder) []
+        |> optional "mainImage" (Json.Decode.map Just animeImageDecoder) Nothing
 
 
 animeSubberDecoder : Decoder AnimeSubber

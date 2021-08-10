@@ -3,7 +3,6 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { Anime, Torrent } from '@prisma/client';
 import * as Parser from 'rss-parser';
 import { Subject } from 'rxjs';
-import { ImageService } from '../image/image.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -49,8 +48,7 @@ export class NyaaService implements OnModuleInit {
     if (regexResult) {
       const [, subberName, animeName, episodeString, resolution, extention] =
         regexResult;
-      const { infoHash, size, trusted, remake, guid, title, link, pubDate } =
-        rssItem;
+      const { infoHash, guid, title, link, pubDate } = rssItem;
       try {
         if (
           (await this.prismaService.torrent.count({ where: { infoHash } })) > 0
@@ -74,7 +72,7 @@ export class NyaaService implements OnModuleInit {
           this.newAnime$.next(anime);
         }
 
-        const subber = await this.prismaService.subber.upsert({
+        await this.prismaService.subber.upsert({
           create: {
             name: subberName,
           },
@@ -84,7 +82,7 @@ export class NyaaService implements OnModuleInit {
           },
         });
 
-        const animeSubber = await this.prismaService.animeSubber.upsert({
+        await this.prismaService.animeSubber.upsert({
           create: { animeName, subberName },
           update: {},
           where: { animeName_subberName: { animeName, subberName } },

@@ -3,7 +3,7 @@ module Client.Main exposing (..)
 import Browser
 import Client.Models exposing (Anime, AnimeSubber, Model, animeDecoder, animeSubberEncoder)
 import Html exposing (Attribute, Html, aside, button, div, dl, footer, h1, h2, header, img, input, li, main_, text, ul)
-import Html.Attributes exposing (class, placeholder, src, style, type_)
+import Html.Attributes exposing (class, placeholder, style, type_)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Error(..), field, list)

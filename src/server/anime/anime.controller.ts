@@ -1,5 +1,4 @@
 import { Body, Controller, Get, Put } from '@nestjs/common';
-import { ApiBody } from '@nestjs/swagger';
 import { Anime, AnimeSubber } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 

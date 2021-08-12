@@ -2,11 +2,13 @@ module Client.Main exposing (..)
 
 import Browser
 import Client.Models exposing (Anime, AnimeSubber, Episode, Model, Torrent, animeDecoder, animeSubberEncoder)
-import Html exposing (Attribute, Html, aside, button, div, dl, footer, h1, h2, h3, header, img, input, li, main_, span, text, ul)
-import Html.Attributes exposing (class, placeholder, src, style, type_)
+import DateFormat
+import Html exposing (Attribute, Html, button, div, footer, h1, h2, h3, header, img, input, li, main_, span, text, ul)
+import Html.Attributes exposing (class, placeholder, src, type_)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Error(..), field, list)
+import Time exposing (Posix)
 
 
 main : Program () Model Msg
@@ -35,6 +37,7 @@ type Msg
     | PostMagnet Torrent
     | ClearInspect
     | RefreshAnime
+    | QueryNyaa
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -77,13 +80,18 @@ update msg model =
         RefreshAnime ->
             ( model, loadAnime )
 
+        QueryNyaa ->
+            case model.input of
+                Client.Models.Filter input ->
+                    ( model, queryNyaa input )
+
+                _ ->
+                    ( model, Cmd.none )
+
 
 parseUserInput : String -> Client.Models.UserInput
 parseUserInput userInput =
-    if String.startsWith "magnet:" userInput then
-        Client.Models.MagnetLink userInput
-
-    else if not (String.isEmpty userInput) then
+    if not (String.isEmpty userInput) then
         Client.Models.Filter userInput
 
     else
@@ -117,8 +125,9 @@ view model =
                 , input
                     [ type_ "text"
                     , onInput UpdateInput
+                    , onEnter QueryNyaa
                     , placeholder "Filter anime"
-                    , class "flex-1"
+                    , class "flex-1 text-black"
                     ]
                     []
                 ]
@@ -206,17 +215,29 @@ detailsHtml anime =
 
 episodeHtml : Episode -> Html Msg
 episodeHtml episode =
-    li [ class "flex flex-row justify-between align-center items-center" ]
-        [ h3 [] [ text episode.episode ]
-        , ul [] <| List.map downloadTorrent episode.torrents
+    li [ class "flex flex-col" ]
+        [ h3 [ class "flex flex-row gap-3" ] [ span [] [ text episode.episode ], span [] [ text (dateFormatter Time.utc episode.createdAt) ] ]
+        , ul [ class "flex flex-row gap-2" ] <| List.map downloadTorrent episode.torrents
         ]
 
 
 downloadTorrent : Torrent -> Html Msg
 downloadTorrent torrent =
     li []
-        [ button [ onClick <| PostMagnet torrent ] [ text <| torrent.subberName ++ " " ++ String.fromInt torrent.resolution ]
+        [ button
+            [ class (isDownloaded torrent), onClick <| PostMagnet torrent ]
+            [ text <| torrent.subberName ++ " " ++ String.fromInt torrent.resolution ]
         ]
+
+
+isDownloaded : Torrent -> String
+isDownloaded torrent =
+    case torrent.downloadAt of
+        Just _ ->
+            "bg-green-500"
+
+        Nothing ->
+            ""
 
 
 onEnter : msg -> Attribute msg
@@ -264,3 +285,23 @@ postMagnet torrent =
         , body = Http.stringBody "application/json" ("{\"infoHash\" : \"" ++ torrent.infoHash ++ "\"}")
         , expect = Http.expectWhatever (\_ -> RefreshAnime)
         }
+
+
+queryNyaa : String -> Cmd Msg
+queryNyaa query =
+    Http.post
+        { url = "/api/anime/more"
+        , body = Http.stringBody "application/json" ("{\"query\" : \"" ++ query ++ "\"}")
+        , expect = Http.expectWhatever (\_ -> RefreshAnime)
+        }
+
+
+dateFormatter : Time.Zone -> Posix -> String
+dateFormatter =
+    DateFormat.format
+        [ DateFormat.yearNumber
+        , DateFormat.text "-"
+        , DateFormat.monthFixed
+        , DateFormat.text "-"
+        , DateFormat.dayOfMonthFixed
+        ]

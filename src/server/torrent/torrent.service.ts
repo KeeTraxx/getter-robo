@@ -24,7 +24,7 @@ export class TorrentService {
           magnetURI: link,
         }),
       );
-      this.prismaService.torrent.update({
+      await this.prismaService.torrent.update({
         where: { link },
         data: { downloadAt: new Date() },
       });

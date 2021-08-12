@@ -17,7 +17,8 @@
             "gigobyte/iso8601-duration": "1.0.0",
             "mdgriffith/elm-ui": "1.1.8",
             "myrho/elm-round": "1.0.4",
-            "rtfeldman/elm-iso8601-date-strings": "1.1.4"
+            "rtfeldman/elm-iso8601-date-strings": "1.1.4",
+            "ryannhg/date-format": "2.3.0"
         },
         "indirect": {
             "elm/bytes": "1.0.8",

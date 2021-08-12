@@ -27,12 +27,16 @@ export class NyaaService implements OnModuleInit {
   constructor(private prismaService: PrismaService) {}
 
   onModuleInit() {
-    this.parseRss();
+    this.queryNyaa();
   }
 
   @Cron(CronExpression.EVERY_30_MINUTES)
-  async parseRss() {
-    const url = this.buildUrl('720');
+  async cron() {
+    this.queryNyaa();
+  }
+
+  async queryNyaa(query = '') {
+    const url = this.buildUrl([query, '720'].filter(Boolean).join(' '));
     this.logger.log(`FETCHING URL ${url}`);
     const feed = await this.rssParser.parseURL(url);
     for (const item of feed.items.sort((a, b) =>

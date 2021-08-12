@@ -17,7 +17,6 @@ type alias Model =
 
 type UserInput
     = Empty
-    | MagnetLink String
     | Filter String
 
 
@@ -32,6 +31,7 @@ type alias Torrent =
     , guid : String
     , resolution : Int
     , extention : String
+    , downloadAt : Maybe Posix
     }
 
 
@@ -134,3 +134,4 @@ torrentDecoder =
         |> required "guid" string
         |> required "resolution" int
         |> required "extention" string
+        |> optional "downloadAt" (nullable Iso8601.decoder) Nothing

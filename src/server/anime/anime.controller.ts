@@ -3,6 +3,7 @@ import { Anime, AnimeSubber, Torrent } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import * as moment from 'moment';
 import { TorrentService } from '../torrent/torrent.service';
+import { NyaaService } from '../nyaa/nyaa.service';
 
 @Controller(['api/anime'])
 export class AnimeController {
@@ -10,6 +11,7 @@ export class AnimeController {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly torrentService: TorrentService,
+    private readonly nyaaService: NyaaService,
   ) {}
 
   @Get()
@@ -55,5 +57,10 @@ export class AnimeController {
     this.logger.log(`Downloading infohash ${torrent.title}`);
     this.torrentService.downloadTorrent(torrent);
     return torrent;
+  }
+
+  @Post('more')
+  async more(@Body() { query }: { query: string }): Promise<void> {
+    await this.nyaaService.queryNyaa(query);
   }
 }

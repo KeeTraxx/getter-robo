@@ -27,6 +27,7 @@ export class AnimeController {
             include: { torrents: { orderBy: { subberName: 'asc' } } },
           },
           mainImage: {},
+          images: {},
         },
       })
     ).map((a) => ({

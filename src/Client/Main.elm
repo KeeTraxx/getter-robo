@@ -1,7 +1,7 @@
 module Client.Main exposing (..)
 
 import Browser
-import Client.Models exposing (Anime, AnimeSubber, Episode, Model, Torrent, animeDecoder, animeSubberEncoder)
+import Client.Models exposing (Anime, AnimeImage, AnimeSubber, Episode, Model, Torrent, animeDecoder, animeImageDecoder, animeSubberEncoder)
 import DateFormat
 import Html exposing (Attribute, Html, button, div, footer, h1, h2, h3, header, img, input, li, main_, span, text, ul)
 import Html.Attributes exposing (class, placeholder, src, type_)
@@ -21,6 +21,7 @@ init _ =
     ( { anime = []
       , input = Client.Models.Empty
       , inspect = Nothing
+      , changeMainImage = Nothing
       , errorMessage = Nothing
       }
     , loadAnime
@@ -35,9 +36,11 @@ type Msg
     | ToggleAutoDownload AnimeSubber
     | InspectAnime Anime
     | PostMagnet Torrent
-    | ClearInspect
+    | CloseDialogs
     | RefreshAnime
     | QueryNyaa
+    | UpdateMainImage Anime AnimeImage
+    | SelectMainImageDialog Anime
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -68,8 +71,8 @@ update msg model =
         InspectAnime anime ->
             ( { model | inspect = Just anime }, Cmd.none )
 
-        ClearInspect ->
-            ( { model | inspect = Nothing }, Cmd.none )
+        CloseDialogs ->
+            ( { model | inspect = Nothing, changeMainImage = Nothing }, Cmd.none )
 
         ToggleAutoDownload animeSubber ->
             ( model, toggleAnimeSubber animeSubber )
@@ -87,6 +90,12 @@ update msg model =
 
                 _ ->
                     ( model, Cmd.none )
+
+        UpdateMainImage anime animeImage ->
+            ( model, updateMainImage anime animeImage )
+
+        SelectMainImageDialog anime ->
+            ( { model | changeMainImage = Just anime }, Cmd.none )
 
 
 parseUserInput : String -> Client.Models.UserInput
@@ -134,6 +143,7 @@ view model =
             , main_ [ class "flex flex-1 overflow-auto" ]
                 [ ul [ class "flex flex-wrap items-stretch gap-6" ] (List.map animeHtml model.anime) ]
             , Maybe.withDefault (div [] []) (Maybe.map detailsHtml model.inspect)
+            , Maybe.withDefault (div [] []) (Maybe.map changeImageHtml model.changeMainImage)
             , footer [] [ text (Maybe.withDefault "" model.errorMessage) ]
             ]
         ]
@@ -144,7 +154,7 @@ animeHtml : Anime -> Html Msg
 animeHtml anime =
     li
         [ class "card flex flex-col" ]
-        [ img [ class "object-cover w-full h-36", src anime.mainImage.url ] []
+        [ img [ onClick <| SelectMainImageDialog anime, class "object-cover w-full h-36", src anime.mainImage.url ] []
         , div [ class "p-4" ]
             [ h2 [ class "cursor-pointer", onClick <| InspectAnime anime ] [ text anime.name ]
             , h3 []
@@ -208,8 +218,28 @@ detailsHtml anime =
                 [ h2 [] [ text anime.name ]
                 , ul [] <| List.map episodeHtml anime.episodes
                 ]
-            , button [ onClick ClearInspect ] [ text "close" ]
+            , button [ onClick CloseDialogs ] [ text "close" ]
             ]
+        ]
+
+
+changeImageHtml : Anime -> Html Msg
+changeImageHtml anime =
+    div [ class "fixed w-full h-full flex items-center justify-center p-10 bg-black bg-opacity-60 inset-0" ]
+        [ div [ class "dialog flex flex-col" ]
+            [ h2 [] [ text anime.name ]
+            , div [ class "px-4 flex-1 overflow-auto" ]
+                [ ul [ class "flex flex-row flex-wrap" ] <| List.map imgHtml anime.images
+                ]
+            , button [ onClick CloseDialogs ] [ text "close" ]
+            ]
+        ]
+
+
+imgHtml : AnimeImage -> Html Msg
+imgHtml animeImage =
+    li [ class "w-48 h-24 m-4" ]
+        [ img [ src animeImage.url, class "object-cover w-full h-24" ] []
         ]
 
 
@@ -292,6 +322,15 @@ queryNyaa query =
     Http.post
         { url = "/api/anime/more"
         , body = Http.stringBody "application/json" ("{\"query\" : \"" ++ query ++ "\"}")
+        , expect = Http.expectWhatever (\_ -> RefreshAnime)
+        }
+
+
+updateMainImage : Anime -> AnimeImage -> Cmd Msg
+updateMainImage anime animeImage =
+    Http.post
+        { url = "/api/anime/image"
+        , body = Http.stringBody "application/json" ("{\"animeName\" : \"" ++ anime.name ++ "\", \"id\" : " ++ String.fromInt animeImage.id ++ "}")
         , expect = Http.expectWhatever (\_ -> RefreshAnime)
         }
 

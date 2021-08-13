@@ -11,6 +11,7 @@ type alias Model =
     { anime : List Anime
     , input : UserInput
     , inspect : Maybe Anime
+    , changeMainImage : Maybe Anime
     , errorMessage : Maybe String
     }
 

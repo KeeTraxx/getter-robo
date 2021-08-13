@@ -27,6 +27,7 @@ export class AnimeController {
             include: { torrents: { orderBy: { subberName: 'asc' } } },
           },
           mainImage: {},
+          images: {},
         },
       })
     ).map((a) => ({
@@ -62,5 +63,19 @@ export class AnimeController {
   @Post('more')
   async more(@Body() { query }: { query: string }): Promise<void> {
     await this.nyaaService.queryNyaa(query);
+  }
+
+  @Post('image')
+  async setImage(
+    @Body() { animeName, id }: { animeName: string; id: number },
+  ): Promise<void> {
+    await this.prismaService.anime.update({
+      data: {
+        mainImageId: id,
+      },
+      where: {
+        name: animeName,
+      },
+    });
   }
 }

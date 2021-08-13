@@ -107,7 +107,7 @@ export class NyaaService implements OnModuleInit {
           },
         });
 
-        this.prismaService.anime.update({
+        await this.prismaService.anime.update({
           data: { newestEpisode: new Date(episode.createdAt) },
           where: { name: animeName },
         });

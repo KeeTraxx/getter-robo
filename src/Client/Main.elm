@@ -1,7 +1,7 @@
 module Client.Main exposing (..)
 
 import Browser
-import Client.Models exposing (Anime, AnimeImage, AnimeSubber, Episode, Model, Torrent, animeDecoder, animeImageDecoder, animeSubberEncoder)
+import Client.Models exposing (Anime, AnimeImage, AnimeSubber, Episode, Model, Torrent, animeDecoder, animeSubberEncoder)
 import DateFormat
 import Html exposing (Attribute, Html, button, div, footer, h1, h2, h3, header, img, input, li, main_, span, text, ul)
 import Html.Attributes exposing (class, placeholder, src, type_)

@@ -39,7 +39,7 @@ type Msg
     | CloseDialogs
     | RefreshAnime
     | QueryNyaa
-    | UpdateMainImage Anime AnimeImage
+    | UpdateMainImage AnimeImage
     | SelectMainImageDialog Anime
 
 
@@ -91,8 +91,8 @@ update msg model =
                 _ ->
                     ( model, Cmd.none )
 
-        UpdateMainImage anime animeImage ->
-            ( model, updateMainImage anime animeImage )
+        UpdateMainImage animeImage ->
+            ( { model | changeMainImage = Nothing }, updateMainImage animeImage )
 
         SelectMainImageDialog anime ->
             ( { model | changeMainImage = Just anime }, Cmd.none )
@@ -154,7 +154,7 @@ animeHtml : Anime -> Html Msg
 animeHtml anime =
     li
         [ class "card flex flex-col" ]
-        [ img [ onClick <| SelectMainImageDialog anime, class "object-cover w-full h-36", src anime.mainImage.url ] []
+        [ img [ onClick <| SelectMainImageDialog anime, class "object-cover w-full h-36 cursor-pointer", src anime.mainImage.url ] []
         , div [ class "p-4" ]
             [ h2 [ class "cursor-pointer", onClick <| InspectAnime anime ] [ text anime.name ]
             , h3 []
@@ -238,8 +238,8 @@ changeImageHtml anime =
 
 imgHtml : AnimeImage -> Html Msg
 imgHtml animeImage =
-    li [ class "w-48 h-24 m-4" ]
-        [ img [ src animeImage.url, class "object-cover w-full h-24" ] []
+    li [ class "w-48 h-24 m-4 cursor-pointer" ]
+        [ img [ src animeImage.url, class "object-cover w-full h-24", onClick <| UpdateMainImage animeImage ] []
         ]
 
 
@@ -326,11 +326,11 @@ queryNyaa query =
         }
 
 
-updateMainImage : Anime -> AnimeImage -> Cmd Msg
-updateMainImage anime animeImage =
+updateMainImage : AnimeImage -> Cmd Msg
+updateMainImage animeImage =
     Http.post
         { url = "/api/anime/image"
-        , body = Http.stringBody "application/json" ("{\"animeName\" : \"" ++ anime.name ++ "\", \"id\" : " ++ String.fromInt animeImage.id ++ "}")
+        , body = Http.stringBody "application/json" ("{\"animeName\" : \"" ++ animeImage.animeName ++ "\", \"id\" : " ++ String.fromInt animeImage.id ++ "}")
         , expect = Http.expectWhatever (\_ -> RefreshAnime)
         }
 

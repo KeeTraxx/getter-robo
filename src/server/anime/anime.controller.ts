@@ -64,4 +64,18 @@ export class AnimeController {
   async more(@Body() { query }: { query: string }): Promise<void> {
     await this.nyaaService.queryNyaa(query);
   }
+
+  @Post('image')
+  async setImage(
+    @Body() { animeName, id }: { animeName: string; id: number },
+  ): Promise<void> {
+    await this.prismaService.anime.update({
+      data: {
+        mainImageId: id,
+      },
+      where: {
+        name: animeName,
+      },
+    });
+  }
 }

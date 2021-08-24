@@ -32,7 +32,7 @@ export class AnimeController {
       })
     ).map((a) => ({
       ...a,
-      age: moment(a.createdAt).fromNow(),
+      age: moment(a.newestEpisode).fromNow(),
     }));
   }
 

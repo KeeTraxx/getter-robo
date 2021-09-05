@@ -1,26 +1,23 @@
 {
-  "@type": "MessageCard",
-  "@context": "https://schema.org/extensions",
-  "summary": "Downloaded",
-  "sections": [
+  "embeds": [
     {
-      "heroImage": {
-        "image": "https://danbooru.donmai.us/data/sample/ac/9e/__kiryu_coco_hololive_drawn_by_araki_qbthgry__sample-ac9e680d4b5522d50c52ade80b0c3f45.jpg"
+      "image": {
+        "url": "https://i.imgur.com/ZGPxFN2.jpg"
       }
     },
     {
-      "facts": [
+      "fields": [
         {
           "name": "Anime",
-          "value": "mgarcia\\test"
+          "value": "Dragonball"
         },
         {
           "name": "Episode",
-          "value": "176715375"
+          "value": "05"
         },
         {
           "name": "Subber",
-          "value": "desu"
+          "value": "Soldats"
         }
       ]
     }

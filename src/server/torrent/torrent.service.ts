@@ -9,7 +9,7 @@ export class TorrentService {
   private readonly logger = new Logger(TorrentService.name);
 
   private readonly AUTODOWNLOAD_TARGET = process.env.AUTODOWNLOAD_TARGET;
-  private readonly TEAMS_CONNECTOR_URL = process.env.TEAMS_CONNECTOR_URL;
+  private readonly DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
 
   constructor(
     private httpService: HttpService,
@@ -21,17 +21,20 @@ export class TorrentService {
     const { link } = torrent;
     this.logger.log(`Downloading magnetLink ${link}...`);
     try {
-      await firstValueFrom(
-        this.httpService.post(this.AUTODOWNLOAD_TARGET, {
-          magnetURI: link,
-        }),
-      );
+      if (this.AUTODOWNLOAD_TARGET) {
+        await firstValueFrom(
+          this.httpService.post(this.AUTODOWNLOAD_TARGET, {
+            magnetURI: link,
+          }),
+        );
+      }
+
       await this.prismaService.torrent.update({
         where: { link },
         data: { downloadAt: new Date() },
       });
 
-      if (this.TEAMS_CONNECTOR_URL) {
+      if (this.DISCORD_WEBHOOK_URL) {
         const torrent = this.prismaService.torrent.findUnique({
           where: { link },
         });
@@ -40,18 +43,22 @@ export class TorrentService {
         const mainImage = await torrent.anime().mainImage();
         const subber = await torrent.subber();
 
-        const sections = [];
+        const embeds = [];
 
         if (mainImage) {
-          sections.push({
-            heroImage: {
-              image: mainImage.url,
+          embeds.push({
+            image: {
+              url: mainImage.url,
             },
           });
         }
 
-        sections.push({
-          facts: [
+        embeds.push({
+          title: `${anime.name} ${episode.episode} (${subber.name}) downloaded.`,
+        });
+
+        embeds.push({
+          fields: [
             {
               name: 'Anime',
               value: anime.name,
@@ -67,13 +74,11 @@ export class TorrentService {
           ],
         });
 
-        this.logger.log(`sending CARD to ${this.TEAMS_CONNECTOR_URL}`);
+        this.logger.log(`sending CARD to ${this.DISCORD_WEBHOOK_URL}`);
 
         await firstValueFrom(
-          this.httpService.post(this.TEAMS_CONNECTOR_URL, {
-            ...ADAPTIVE_CARD_TEMPLATE,
-            summary: `${anime.name} ${episode.episode} (${subber.name}) downloaded.`,
-            sections,
+          this.httpService.post(this.DISCORD_WEBHOOK_URL, {
+            embeds,
           }),
         );
       }

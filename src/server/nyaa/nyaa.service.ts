@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Anime, Torrent } from '@prisma/client';
+import moment from 'moment';
 import * as Parser from 'rss-parser';
 import { Subject } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
@@ -107,10 +108,16 @@ export class NyaaService implements OnModuleInit {
           },
         });
 
-        await this.prismaService.anime.update({
-          data: { newestEpisode: new Date(episode.createdAt) },
+        const anime = await this.prismaService.anime.findUnique({
           where: { name: animeName },
         });
+
+        if (moment(episode.createdAt).isAfter(anime.newestEpisode)) {
+          await this.prismaService.anime.update({
+            data: { newestEpisode: new Date(episode.createdAt) },
+            where: { name: animeName },
+          });
+        }
 
         const torrent = await this.prismaService.torrent.upsert({
           create: {

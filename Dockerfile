@@ -1,6 +1,6 @@
 FROM node:lts-alpine
 
-RUN apk add git python3 --no-cache 
+RUN apk add git python3 build-base --no-cache 
 
 COPY . /app
 

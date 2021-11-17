@@ -19,7 +19,7 @@ export class AnimeController {
     return (
       await this.prismaService.anime.findMany({
         orderBy: [{ newestEpisode: 'desc' }],
-        take: 50,
+        take: 100,
         include: {
           subbers: {},
           episodes: {

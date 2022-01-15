@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Anime, Torrent } from '@prisma/client';
-import moment from 'moment';
+import * as moment from 'moment';
 import * as Parser from 'rss-parser';
 import { Subject } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';

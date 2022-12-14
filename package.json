@@ -34,7 +34,7 @@
     "@types/webtorrent": "^0.109.1",
     "css-reset-and-normalize": "^2.3.5",
     "dotenv": "^10.0.0",
-    "express": "^4.17.1",
+    "express": "^4.17.3",
     "googleapis": "^84.0.0",
     "moment": "^2.29.1",
     "reflect-metadata": "^0.1.13",
